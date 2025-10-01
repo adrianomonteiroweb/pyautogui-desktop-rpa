@@ -113,6 +113,59 @@ class DesktopIconAutomation:
         except Exception as e:
             print(f"✗ Erro ao tentar dar double click em {description}: {e}")
             return AutomationResult.CLICK_FAILED
+
+    def _locate_and_single_click_image(self, image_path: str, description: str) -> AutomationResult:
+        """
+        Localiza e dá um click único em uma imagem na tela
+        
+        Args:
+            image_path: Caminho para a imagem
+            description: Descrição da ação para logging
+            
+        Returns:
+            AutomationResult: Resultado da operação
+        """
+        try:
+            # Primeiro, vamos encontrar todas as ocorrências
+            all_locations = self._find_all_image_locations(image_path)
+            
+            if not all_locations:
+                print(f"✗ Não foi possível localizar {description}")
+                return AutomationResult.IMAGE_NOT_FOUND
+            
+            print(f"🔍 Encontradas {len(all_locations)} ocorrência(s) de {description}:")
+            
+            # Se encontrou apenas uma, clica diretamente
+            if len(all_locations) == 1:
+                location = all_locations[0]
+                center = pay.center(location)
+                print(f"  Posição única encontrada: {center}")
+                
+                # Realiza o click único
+                pay.click(center)
+                print(f"✓ Click único realizado em {description}")
+                return AutomationResult.SUCCESS
+            
+            # Se encontrou múltiplas, mostra todas e pede confirmação
+            else:
+                print("  Múltiplas ocorrências encontradas:")
+                for i, location in enumerate(all_locations, 1):
+                    center = pay.center(location)
+                    print(f"    {i}. Posição: {center}")
+                
+                # Por segurança, vamos clicar na primeira (mais provável de ser a correta)
+                location = all_locations[0]
+                center = pay.center(location)
+                print(f"  🎯 Clicando na primeira ocorrência: {center}")
+                
+                # Realiza o click único
+                pay.click(center)
+                print(f"✓ Click único realizado em {description}")
+                return AutomationResult.SUCCESS
+                
+        except Exception as e:
+            print(f"✗ Erro ao tentar dar click único em {description}: {e}")
+            return AutomationResult.CLICK_FAILED
     
     def _wait_with_countdown(self, seconds: int, message: str = "Iniciando automação") -> None:
         """Exibe uma contagem regressiva"""
@@ -122,6 +175,46 @@ class DesktopIconAutomation:
             time.sleep(1)
         print("Iniciando...")
     
+    def single_click_image(self, image_filename: str) -> AutomationResult:
+        """
+        Executa click único em uma imagem na tela
+        
+        Args:
+            image_filename: Nome do arquivo da imagem
+            
+        Returns:
+            AutomationResult: Resultado da operação
+        """
+        print(f"\n=== AUTOMAÇÃO DE CLICK ÚNICO NA IMAGEM {image_filename.upper()} ===")
+        
+        # Constrói o caminho da imagem
+        image_path = self._get_image_path(image_filename)
+        
+        # Valida se o arquivo existe
+        if not self._validate_image_file(image_path):
+            print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+            return AutomationResult.FILE_NOT_EXISTS
+        
+        print(f"Procurando pela imagem: {image_filename}")
+        print(f"Caminho da imagem: {image_path}")
+        
+        # Executa o click único
+        result = self._locate_and_single_click_image(image_path, f"imagem ({image_filename})")
+        
+        # Exibe o resultado
+        print(f"\n=== RESULTADO DO CLICK ÚNICO ===")
+        if result == AutomationResult.SUCCESS:
+            print(f"✓ Click único na imagem {image_filename} executado com sucesso!")
+        elif result == AutomationResult.IMAGE_NOT_FOUND:
+            print(f"⚠ Imagem {image_filename} não encontrada na tela. Verifique se:")
+            print("  - A imagem está visível na tela")
+            print(f"  - O arquivo {image_filename} corresponde ao elemento atual")
+            print("  - A resolução da tela não mudou")
+        else:
+            print("✗ Falha ao executar o click único")
+        
+        return result
+
     def double_click_desktop_icon(self, icon_filename: str = "icon.png") -> AutomationResult:
         """
         Executa double click no ícone do desktop
@@ -168,28 +261,53 @@ class DesktopIconAutomation:
 
 def main():
     """Função principal"""
-    print("=== AUTOMATIZAÇÃO DE DOUBLE CLICK EM ÍCONE DO DESKTOP ===")
-    print("Este script irá localizar e dar double click no ícone usando a imagem icon.png")
-    print("Certifique-se de que o desktop está visível e o ícone não está oculto")
+    print("=== AUTOMATIZAÇÃO COMPLETA ===")
+    print("Este script irá:")
+    print("1. Dar double click no ícone usando a imagem icon.png")
+    print("2. Aguardar 5 segundos")
+    print("3. Dar um click único na imagem cert.png")
+    print("Certifique-se de que o desktop está visível e os elementos não estão ocultos")
     
     # Configuração da automação
     config = AutomationConfig(
         confidence=0.9,           # Confiança alta para ser mais preciso
         double_click_interval=0.1, # Intervalo entre os cliques do double click
         startup_delay=3,          # Tempo de espera antes de iniciar
-        images_folder="images",   # Pasta onde está a imagem do ícone
+        images_folder="images",   # Pasta onde estão as imagens
         preview_mode=False        # Desabilitado por padrão
     )
     
-    # Cria e executa a automação
+    # Cria a automação
     automation = DesktopIconAutomation(config)
-    result = automation.double_click_desktop_icon("icon.png")
     
-    # Mensagem final baseada no resultado
-    if result == AutomationResult.SUCCESS:
-        print("\n🎉 Automação concluída com sucesso!")
+    # Executa o double click no ícone
+    result_double_click = automation.double_click_desktop_icon("icon.png")
+    
+    if result_double_click == AutomationResult.SUCCESS:
+        print("\n✓ Double click executado com sucesso!")
+        
+        # Aguarda 5 segundos antes de continuar
+        print("\n=== AGUARDANDO 5 SEGUNDOS ===")
+        automation._wait_with_countdown(5, "Preparando para o próximo click")
+        
+        # Executa o click único na imagem cert.png
+        result_single_click = automation.single_click_image("cert.png")
+        
+        # Mensagem final baseada nos resultados
+        if result_single_click == AutomationResult.SUCCESS:
+            print("\n🎉 Automação completa concluída com sucesso!")
+            print("✓ Double click no ícone realizado")
+            print("✓ Click único na imagem cert.png realizado")
+        else:
+            print(f"\n⚠ Automação parcialmente concluída!")
+            print("✓ Double click no ícone realizado")
+            print(f"✗ Click único falhou: {result_single_click.value}")
+            print("\nDicas para solução do problema do click único:")
+            print("1. Verifique se a imagem cert.png está na pasta 'images'")
+            print("2. Certifique-se de que o elemento está visível na tela")
+            print("3. A imagem deve corresponder exatamente ao elemento na tela")
     else:
-        print(f"\n❌ Automação falhou: {result.value}")
+        print(f"\n❌ Automação falhou no primeiro passo: {result_double_click.value}")
         print("\nDicas para solução de problemas:")
         print("1. Verifique se a imagem icon.png está na pasta 'images'")
         print("2. Certifique-se de que o ícone está visível no desktop")
