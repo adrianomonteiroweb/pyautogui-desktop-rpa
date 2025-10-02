@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class AutomationResult(Enum):
+class RPAResult(Enum):
     SUCCESS = "success"
     IMAGE_NOT_FOUND = "image_not_found"
     FILE_NOT_EXISTS = "file_not_exists"
@@ -14,7 +14,7 @@ class AutomationResult(Enum):
 
 
 @dataclass
-class AutomationConfig:
+class RPAConfig:
     confidence: float = 0.9  # Aumentando a confiança para ser mais preciso
     double_click_interval: float = 0.1
     startup_delay: int = 3
@@ -22,9 +22,9 @@ class AutomationConfig:
     preview_mode: bool = False  # Modo para mostrar todas as ocorrências encontradas
 
 
-class DesktopIconAutomation:
-    def __init__(self, config: AutomationConfig = None):
-        self.config = config or AutomationConfig()
+class DesktopRPA:
+    def __init__(self, config: RPAConfig = None):
+        self.config = config or RPAConfig()
         self._setup_pyautogui()
     
     def _setup_pyautogui(self) -> None:
@@ -45,13 +45,13 @@ class DesktopIconAutomation:
             print(f"Erro ao procurar imagem: {e}")
             return []
     
-    def _locate_and_double_click_image(self, image_path: str, description: str) -> AutomationResult:
+    def _locate_and_double_click_image(self, image_path: str, description: str) -> RPAResult:
         try:
             all_locations = self._find_all_image_locations(image_path)
             
             if not all_locations:
                 print(f"✗ Não foi possível localizar {description}")
-                return AutomationResult.IMAGE_NOT_FOUND
+                return RPAResult.IMAGE_NOT_FOUND
             
             print(f"🔍 Encontradas {len(all_locations)} ocorrência(s) de {description}:")
             
@@ -62,7 +62,7 @@ class DesktopIconAutomation:
                 
                 pay.doubleClick(center, interval=self.config.double_click_interval)
                 print(f"✓ Double click realizado em {description}")
-                return AutomationResult.SUCCESS
+                return RPAResult.SUCCESS
             
             else:
                 print("  Múltiplas ocorrências encontradas:")
@@ -76,19 +76,19 @@ class DesktopIconAutomation:
                 
                 pay.doubleClick(center, interval=self.config.double_click_interval)
                 print(f"✓ Double click realizado em {description}")
-                return AutomationResult.SUCCESS
+                return RPAResult.SUCCESS
                 
         except Exception as e:
             print(f"✗ Erro ao tentar dar double click em {description}: {e}")
-            return AutomationResult.CLICK_FAILED
+            return RPAResult.CLICK_FAILED
 
-    def _locate_and_single_click_image(self, image_path: str, description: str) -> AutomationResult:
+    def _locate_and_single_click_image(self, image_path: str, description: str) -> RPAResult:
         try:
             all_locations = self._find_all_image_locations(image_path)
             
             if not all_locations:
                 print(f"✗ Não foi possível localizar {description}")
-                return AutomationResult.IMAGE_NOT_FOUND
+                return RPAResult.IMAGE_NOT_FOUND
             
             print(f"🔍 Encontradas {len(all_locations)} ocorrência(s) de {description}:")
             
@@ -99,7 +99,7 @@ class DesktopIconAutomation:
                 
                 pay.click(center)
                 print(f"✓ Click único realizado em {description}")
-                return AutomationResult.SUCCESS
+                return RPAResult.SUCCESS
             
             else:
                 print("  Múltiplas ocorrências encontradas:")
@@ -113,11 +113,11 @@ class DesktopIconAutomation:
                 
                 pay.click(center)
                 print(f"✓ Click único realizado em {description}")
-                return AutomationResult.SUCCESS
+                return RPAResult.SUCCESS
                 
         except Exception as e:
             print(f"✗ Erro ao tentar dar click único em {description}: {e}")
-            return AutomationResult.CLICK_FAILED
+            return RPAResult.CLICK_FAILED
     
     def _wait_with_countdown(self, seconds: int, message: str = "Iniciando automação") -> None:
         print(f"{message} em {seconds} segundos...")
@@ -128,12 +128,12 @@ class DesktopIconAutomation:
 
         print("Iniciando...")
     
-    def wait_for_image(self, image_filename: str, timeout: int = 30, check_interval: float = 1.0) -> AutomationResult:
+    def wait_for_image(self, image_filename: str, timeout: int = 30, check_interval: float = 1.0) -> RPAResult:
         image_path = self._get_image_path(image_filename)
         
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
-            return AutomationResult.FILE_NOT_EXISTS
+            return RPAResult.FILE_NOT_EXISTS
         
         elapsed_time = 0.0
         
@@ -145,7 +145,7 @@ class DesktopIconAutomation:
                 if location is not None:
                     center = pay.center(location)
                     print(f"✓ Imagem {image_filename} encontrada após {elapsed_time:.1f}s na posição: {center}")
-                    return AutomationResult.SUCCESS
+                    return RPAResult.SUCCESS
                 
                 # Se não encontrou, aguarda o intervalo especificado
                 print(f"⏳ Aguardando... ({elapsed_time:.1f}s/{timeout}s)")
@@ -158,50 +158,46 @@ class DesktopIconAutomation:
                 elapsed_time += check_interval
         
         print(f"✗ Timeout: Imagem {image_filename} não foi encontrada em {timeout} segundos")
-        return AutomationResult.IMAGE_NOT_FOUND
+        return RPAResult.IMAGE_NOT_FOUND
     
-    def single_click_image(self, image_filename: str) -> AutomationResult:
+    def single_click_image(self, image_filename: str) -> RPAResult:
         image_path = self._get_image_path(image_filename)
         
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
-            return AutomationResult.FILE_NOT_EXISTS
+            return RPAResult.FILE_NOT_EXISTS
         
         result = self._locate_and_single_click_image(image_path, f"imagem ({image_filename})")
         
-        if result == AutomationResult.SUCCESS:
-            print(f"✓ Click único na imagem {image_filename} executado com sucesso!")
-        elif result == AutomationResult.IMAGE_NOT_FOUND:
-            print(f"⚠ Imagem {image_filename} não encontrada na tela. Verifique se:")
-        else:
+        if result == RPAResult.CLICK_FAILED:
             print("✗ Falha ao executar o click único")
+        elif result == RPAResult.IMAGE_NOT_FOUND:
+            print(f"⚠ Imagem {image_filename} não encontrada na tela. Verifique se:")
         
         return result
 
-    def double_click_desktop_icon(self, icon_filename: str = "icon.png") -> AutomationResult:
+    def double_click_image(self, icon_filename: str = "icon.png") -> RPAResult:
         self._wait_with_countdown(self.config.startup_delay, "Procurando ícone no desktop")
         
         image_path = self._get_image_path(icon_filename)
         
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
-            return AutomationResult.FILE_NOT_EXISTS
+            return RPAResult.FILE_NOT_EXISTS
         
         
         result = self._locate_and_double_click_image(image_path, f"ícone ({icon_filename})")
         
-        if result == AutomationResult.SUCCESS:
-            print("✓ Double click no ícone executado com sucesso!")
-        elif result == AutomationResult.IMAGE_NOT_FOUND:
-            print("⚠ Ícone não encontrado na tela. Verifique se:")
-        else:
+        if result == RPAResult.CLICK_FAILED:
             print("✗ Falha ao executar o double click")
+        elif result == RPAResult.IMAGE_NOT_FOUND:
+            print("⚠ Ícone não encontrado na tela. Verifique se:")
         
         return result
 
 
 def main():
-    config = AutomationConfig(
+    config = RPAConfig(
         confidence=0.9,           # Confiança alta para ser mais preciso
         double_click_interval=0.1, # Intervalo entre os cliques do double click
         startup_delay=3,          # Tempo de espera antes de iniciar
@@ -209,14 +205,14 @@ def main():
         preview_mode=False        # Desabilitado por padrão
     )
     
-    rpa = DesktopIconAutomation(config)
+    rpa = DesktopRPA(config)
     
     # Exemplo usando wait_for_image para aguardar o ícone aparecer
     print("\n✓ PASSO 1: Abrindo o ReceitanetBX...")
     wait_for_receitanetbx_icon = rpa.wait_for_image("icon.png", timeout=10)
     
-    if wait_for_receitanetbx_icon == AutomationResult.SUCCESS:
-        rpa.double_click_desktop_icon("icon.png")
+    if wait_for_receitanetbx_icon == RPAResult.SUCCESS:
+        rpa.double_click_image("icon.png")
         
         print("\n✓ PASSO 2: Selecionando o certificado digital...")
         rpa.wait_for_image("cert.png", timeout=120)
