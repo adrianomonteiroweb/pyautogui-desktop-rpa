@@ -235,10 +235,17 @@ def main():
 
         rpa.wait_for_image("opcao_cnpj.png", timeout=10)
         rpa.single_click_image("opcao_cnpj.png")
+
+        print("\n✓ PASSO 5: Digitando CNPJ da empresa...")
+        rpa.wait_for_image("cnpj_input.png", timeout=10)
+        rpa.single_click_image("cnpj_input.png")
+        pay.write("06097786000193", interval=0.1)
+
+        time.sleep(1)
                 
-        # print("\n✓ PASSO : Entrando no sistema...")
-        # rpa.wait_for_image("entrar.png", timeout=10)
-        # rpa.single_click_image("entrar.png")
+        print("\n✓ PASSO 6: Entrando no sistema...")
+        rpa.wait_for_image("entrar.png", timeout=10)
+        rpa.single_click_image("entrar.png")
                 
     else:
         print(f"\n❌ ERRO: {wait_for_receitanetbx_icon.value}")
