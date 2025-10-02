@@ -192,77 +192,27 @@ class RPA:
 
     def login_por_certificado(self) -> RPAResult:
         print("\nSelecionando o certificado digital...")
-        
-        cert_result = self.wait_for_image("cert.png", timeout=120)
-
-        if cert_result != RPAResult.SUCCESS:
-            return cert_result
-        
-        cert_click_result = self.single_click_image("cert.png")
-
-        if cert_click_result != RPAResult.SUCCESS:
-            return cert_click_result
+        self.wait_for_image("cert.png", timeout=120)
+        self.single_click_image("cert.png")
 
         print("\nSelecionando o perfil...")
-        
-        profile_result = self.wait_for_image("combo_perfil.png", timeout=10)
-
-        if profile_result != RPAResult.SUCCESS:
-            return profile_result
-            
-        profile_click_result = self.single_click_image("combo_perfil.png")
-
-        if profile_click_result != RPAResult.SUCCESS:
-            return profile_click_result
-
-        procurador_result = self.wait_for_image("opcao_procurador.png", timeout=10)
-
-        if procurador_result != RPAResult.SUCCESS:
-            return procurador_result
-            
+        self.wait_for_image("combo_perfil.png", timeout=10)
+        self.single_click_image("combo_perfil.png")
+        self.wait_for_image("opcao_procurador.png", timeout=10)
         return self.single_click_image("opcao_procurador.png")
 
-    def selectEmpresa(self, cnpj) -> RPAResult:
+    def typeCNPJ(self, cnpj) -> RPAResult:
         print(f"\nDigitando CNPJ: {cnpj}...")
-        
-        tipo_doc_result = self.wait_for_image("combo_tipo_doc.png", timeout=10)
-
-        if tipo_doc_result != RPAResult.SUCCESS:
-            return tipo_doc_result
-            
-        tipo_doc_click_result = self.single_click_image("combo_tipo_doc.png")
-
-        if tipo_doc_click_result != RPAResult.SUCCESS:
-            return tipo_doc_click_result
-
-        cnpj_option_result = self.wait_for_image("opcao_cnpj.png", timeout=10)
-
-        if cnpj_option_result != RPAResult.SUCCESS:
-            return cnpj_option_result
-            
-        cnpj_option_click_result = self.single_click_image("opcao_cnpj.png")
-
-        if cnpj_option_click_result != RPAResult.SUCCESS:
-            return cnpj_option_click_result
-
-        cnpj_input_result = self.wait_for_image("cnpj_input.png", timeout=10)
-
-        if cnpj_input_result != RPAResult.SUCCESS:
-            return cnpj_input_result
-            
-        cnpj_input_click_result = self.single_click_image("cnpj_input.png")
-
-        if cnpj_input_click_result != RPAResult.SUCCESS:
-            return cnpj_input_click_result
+        self.wait_for_image("combo_tipo_doc.png", timeout=10)
+        self.single_click_image("combo_tipo_doc.png")
+        self.wait_for_image("opcao_cnpj.png", timeout=10)
+        self.single_click_image("opcao_cnpj.png")
+        self.wait_for_image("cnpj_input.png", timeout=10)
+        self.single_click_image("cnpj_input.png")
         
         pay.write(cnpj, interval=0.1)
         time.sleep(1)
 
         print("\nEntrando no sistema...")
-        
-        entrar_result = self.wait_for_image("entrar.png", timeout=10)
-
-        if entrar_result != RPAResult.SUCCESS:
-            return entrar_result
-            
+        self.wait_for_image("entrar.png", timeout=10)
         return self.single_click_image("entrar.png")

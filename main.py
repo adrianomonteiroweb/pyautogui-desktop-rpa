@@ -14,10 +14,10 @@ def main():
     login_result = rpa.login_por_certificado()
 
     if login_result != RPAResult.SUCCESS:
-        print(f"❌ Falha no login: {login_result.value}")
+        print(f"❌ Falha no login: {login_result}")
         return
     
-    empresa_result = rpa.selectEmpresa("06097786000193")
+    empresa_result = rpa.typeCNPJ("06097786000193")
 
     if empresa_result != RPAResult.SUCCESS:
         print(f"❌ Falha na seleção da empresa: {empresa_result.value}")
