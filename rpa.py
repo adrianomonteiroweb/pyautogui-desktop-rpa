@@ -196,9 +196,7 @@ class RPA:
         self.single_click_image("cert.png")
 
         print("\nSelecionando o perfil...")
-        self.wait_for_image("combo_perfil.png", timeout=10)
         self.single_click_image("combo_perfil.png")
-        self.wait_for_image("opcao_procurador.png", timeout=10)
         return self.single_click_image("opcao_procurador.png")
 
     def typeCNPJ(self, cnpj) -> RPAResult:
@@ -216,3 +214,41 @@ class RPA:
         print("\nEntrando no sistema...")
         self.wait_for_image("entrar.png", timeout=10)
         return self.single_click_image("entrar.png")
+    
+    def search(self) -> RPAResult:
+        print("\nPesquisando arquivos...")
+        self.wait_for_image("lupa.png", timeout=10)
+        time.sleep(1)
+        self.single_click_image("lupa.png")
+
+        self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png")
+        self._selectOption("combo_arquivo.png", "opcao_escrituracao.png")
+        return self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png")
+
+    def _selectOption(self, combo_image: str, option_image: str, attempts: int = 2) -> RPAResult:
+        for attempt in range(attempts):
+            
+            combo_result = self.wait_for_image(combo_image, timeout=10)
+
+            if combo_result != RPAResult.SUCCESS:
+                if attempt < attempts - 1:
+                    time.sleep(1)
+                    continue
+                else:
+                    return combo_result
+            
+            self.single_click_image(combo_image)
+            
+            option_result = self.wait_for_image(option_image, timeout=10)
+
+            if option_result == RPAResult.SUCCESS:
+                click_result = self.single_click_image(option_image)
+                
+                if click_result == RPAResult.SUCCESS:
+                    return RPAResult.SUCCESS
+            
+            if attempt < attempts - 1:
+                time.sleep(1)
+        
+        return RPAResult.IMAGE_NOT_FOUND
+        

@@ -23,6 +23,12 @@ def main():
         print(f"❌ Falha na seleção da empresa: {empresa_result.value}")
         return
     
+    search_result = rpa.search()
+
+    if search_result != RPAResult.SUCCESS:
+        print(f"❌ Falha na pesquisa: {search_result.value}")
+        return
+    
     print("\n🎉 Automação concluída com sucesso!")
 
 
