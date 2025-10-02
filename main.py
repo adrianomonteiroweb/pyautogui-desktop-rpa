@@ -192,59 +192,22 @@ def main():
     
     automation = DesktopIconAutomation(config)
     
-    # PASSO 1: Executa o double click no ícone
+    print("\n✓ PASSO 1: Abrindo o ReceitanetBX")
     result_double_click = automation.double_click_desktop_icon("icon.png")
     
     if result_double_click == AutomationResult.SUCCESS:
-        print("\n✓ PASSO 1: Double click executado com sucesso!")
+        print("\n✓ PASSO 2: Selecionando o certificado digital...")
+        time.sleep(3)
+        automation.single_click_image("cert.png")
         
-        # PASSO 2: Aguarda 5 segundos antes de continuar
-        print("\n=== PASSO 2: AGUARDANDO 5 SEGUNDOS ===")
-        automation._wait_with_countdown(5, "Preparando para o click no certificado")
-        
-        # PASSO 3: Executa o click único na imagem cert.png
-        result_cert_click = automation.single_click_image("cert.png")
-        
-        if result_cert_click == AutomationResult.SUCCESS:
-            print("\n✓ PASSO 3: Click na imagem cert.png executado com sucesso!")
+        print("\n✓ PASSO 3: Selecionando o perfil de acesso...")
             
-            # PASSO 4: Aguarda 3 segundos antes de continuar
-            print("\n=== PASSO 4: AGUARDANDO 3 SEGUNDOS ===")
-            automation._wait_with_countdown(3, "Preparando para o click em entrar")
-            
-            # PASSO 5: Executa o click único na imagem entrar.png
-            result_entrar_click = automation.single_click_image("entrar.png")
-            
-            # Mensagem final baseada nos resultados
-            if result_entrar_click == AutomationResult.SUCCESS:
-                print("\n🎉 AUTOMAÇÃO COMPLETA CONCLUÍDA COM SUCESSO!")
-                print("✓ PASSO 1: Double click no ícone realizado")
-                print("✓ PASSO 3: Click único na imagem cert.png realizado")
-                print("✓ PASSO 5: Click único na imagem entrar.png realizado")
-            else:
-                print(f"\n⚠ AUTOMAÇÃO PARCIALMENTE CONCLUÍDA!")
-                print("✓ PASSO 1: Double click no ícone realizado")
-                print("✓ PASSO 3: Click único na imagem cert.png realizado")
-                print(f"✗ PASSO 5: Click em entrar.png falhou: {result_entrar_click.value}")
-                print("\nDicas para solução do problema do click em entrar:")
-                print("1. Verifique se a imagem entrar.png está na pasta 'images'")
-                print("2. Certifique-se de que o botão 'Entrar' está visível na tela")
-                print("3. A imagem deve corresponder exatamente ao botão na tela")
-        else:
-            print(f"\n⚠ AUTOMAÇÃO PARCIALMENTE CONCLUÍDA!")
-            print("✓ PASSO 1: Double click no ícone realizado")
-            print(f"✗ PASSO 3: Click em cert.png falhou: {result_cert_click.value}")
-            print("\nDicas para solução do problema do click no certificado:")
-            print("1. Verifique se a imagem cert.png está na pasta 'images'")
-            print("2. Certifique-se de que o elemento está visível na tela")
-            print("3. A imagem deve corresponder exatamente ao elemento na tela")
+        print("\n✓ PASSO 4: Entrando no sistema...")
+        time.sleep(1)
+        automation.single_click_image("entrar.png")
+       
     else:
-        print(f"\n❌ AUTOMAÇÃO FALHOU NO PRIMEIRO PASSO: {result_double_click.value}")
-        print("\nDicas para solução de problemas:")
-        print("1. Verifique se a imagem icon.png está na pasta 'images'")
-        print("2. Certifique-se de que o ícone está visível no desktop")
-        print("3. A imagem deve corresponder exatamente ao ícone na tela")
-        print("4. Tente ajustar o nível de confiança (confidence)")
+        print(f"\n❌ ERRO: {result_double_click.value}")
 
 
 if __name__ == "__main__":
