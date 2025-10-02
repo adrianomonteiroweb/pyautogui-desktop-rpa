@@ -181,8 +181,7 @@ class RPA:
         return result
 
     def init(self) -> RPAResult:
-        """Inicializa o sistema ReceitanetBX"""
-        print("\n✓ PASSO 1: Abrindo o ReceitanetBX...")
+        print("\nAbrindo o ReceitanetBX...")
         wait_result = self.wait_for_image("icon.png", timeout=10)
         
         if wait_result == RPAResult.SUCCESS:
@@ -192,77 +191,77 @@ class RPA:
             return wait_result
 
     def login_por_certificado(self) -> RPAResult:
-        """Realiza o login usando certificado digital"""
-        print("\n✓ PASSO 2: Selecionando o certificado digital...")
+        print("\nSelecionando o certificado digital...")
         
-        # Aguarda e clica no certificado
         cert_result = self.wait_for_image("cert.png", timeout=120)
+
         if cert_result != RPAResult.SUCCESS:
             return cert_result
         
         cert_click_result = self.single_click_image("cert.png")
+
         if cert_click_result != RPAResult.SUCCESS:
             return cert_click_result
 
-        print("\n✓ PASSO 3: Selecionando o perfil...")
+        print("\nSelecionando o perfil...")
         
-        # Seleciona perfil procurador
         profile_result = self.wait_for_image("combo_perfil.png", timeout=10)
+
         if profile_result != RPAResult.SUCCESS:
             return profile_result
             
         profile_click_result = self.single_click_image("combo_perfil.png")
+
         if profile_click_result != RPAResult.SUCCESS:
             return profile_click_result
 
-        # Seleciona opção procurador
         procurador_result = self.wait_for_image("opcao_procurador.png", timeout=10)
+
         if procurador_result != RPAResult.SUCCESS:
             return procurador_result
             
         return self.single_click_image("opcao_procurador.png")
 
-    def selectEmpresa(self, cnpj: str = "06097786000193") -> RPAResult:
-        """Seleciona a empresa pelo CNPJ"""
-        print("\n✓ PASSO 4: Inserindo CNPJ da empresa...")
+    def selectEmpresa(self, cnpj) -> RPAResult:
+        print(f"\nDigitando CNPJ: {cnpj}...")
         
-        # Clica no combo tipo documento
         tipo_doc_result = self.wait_for_image("combo_tipo_doc.png", timeout=10)
+
         if tipo_doc_result != RPAResult.SUCCESS:
             return tipo_doc_result
             
         tipo_doc_click_result = self.single_click_image("combo_tipo_doc.png")
+
         if tipo_doc_click_result != RPAResult.SUCCESS:
             return tipo_doc_click_result
 
-        # Seleciona CNPJ
         cnpj_option_result = self.wait_for_image("opcao_cnpj.png", timeout=10)
+
         if cnpj_option_result != RPAResult.SUCCESS:
             return cnpj_option_result
             
         cnpj_option_click_result = self.single_click_image("opcao_cnpj.png")
+
         if cnpj_option_click_result != RPAResult.SUCCESS:
             return cnpj_option_click_result
 
-        print("\n✓ PASSO 5: Digitando CNPJ da empresa...")
-        
-        # Clica no campo de input do CNPJ
         cnpj_input_result = self.wait_for_image("cnpj_input.png", timeout=10)
+
         if cnpj_input_result != RPAResult.SUCCESS:
             return cnpj_input_result
             
         cnpj_input_click_result = self.single_click_image("cnpj_input.png")
+
         if cnpj_input_click_result != RPAResult.SUCCESS:
             return cnpj_input_click_result
         
-        # Digita o CNPJ
         pay.write(cnpj, interval=0.1)
         time.sleep(1)
 
-        print("\n✓ PASSO 6: Entrando no sistema...")
+        print("\nEntrando no sistema...")
         
-        # Clica em entrar
         entrar_result = self.wait_for_image("entrar.png", timeout=10)
+
         if entrar_result != RPAResult.SUCCESS:
             return entrar_result
             

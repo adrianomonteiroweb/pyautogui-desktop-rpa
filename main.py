@@ -18,7 +18,7 @@ def main():
         return
     
     empresa_result = rpa.selectEmpresa("06097786000193")
-    
+
     if empresa_result != RPAResult.SUCCESS:
         print(f"❌ Falha na seleção da empresa: {empresa_result.value}")
         return
