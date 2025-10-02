@@ -128,6 +128,54 @@ class DesktopIconAutomation:
 
         print("Iniciando...")
     
+    def wait_for_image(self, image_filename: str, timeout: int = 30, check_interval: float = 1.0) -> AutomationResult:
+        """
+        Espera até que uma imagem seja visível na tela.
+        
+        Args:
+            image_filename (str): Nome do arquivo de imagem a ser procurado
+            timeout (int): Tempo limite em segundos para aguardar (padrão: 30)
+            check_interval (float): Intervalo entre as verificações em segundos (padrão: 1.0)
+        
+        Returns:
+            AutomationResult: SUCCESS se a imagem for encontrada, IMAGE_NOT_FOUND se timeout
+        """
+        print(f"\n=== AGUARDANDO IMAGEM {image_filename.upper()} FICAR VISÍVEL ===")
+        
+        image_path = self._get_image_path(image_filename)
+        
+        if not self._validate_image_file(image_path):
+            print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+            return AutomationResult.FILE_NOT_EXISTS
+        
+        print(f"Procurando pela imagem: {image_filename}")
+        print(f"Timeout: {timeout} segundos | Intervalo de verificação: {check_interval}s")
+        
+        elapsed_time = 0.0
+        
+        while elapsed_time < timeout:
+            try:
+                # Tenta localizar a imagem na tela
+                location = pay.locateOnScreen(image_path, confidence=self.config.confidence)
+                
+                if location is not None:
+                    center = pay.center(location)
+                    print(f"✓ Imagem {image_filename} encontrada após {elapsed_time:.1f}s na posição: {center}")
+                    return AutomationResult.SUCCESS
+                
+                # Se não encontrou, aguarda o intervalo especificado
+                print(f"⏳ Aguardando... ({elapsed_time:.1f}s/{timeout}s)")
+                time.sleep(check_interval)
+                elapsed_time += check_interval
+                
+            except Exception as e:
+                print(f"⚠ Erro durante a busca: {e}")
+                time.sleep(check_interval)
+                elapsed_time += check_interval
+        
+        print(f"✗ Timeout: Imagem {image_filename} não foi encontrada em {timeout} segundos")
+        return AutomationResult.IMAGE_NOT_FOUND
+    
     def single_click_image(self, image_filename: str) -> AutomationResult:
         print(f"\n=== AUTOMAÇÃO DE CLICK ÚNICO NA IMAGEM {image_filename.upper()} ===")
         
@@ -190,24 +238,31 @@ def main():
         preview_mode=False        # Desabilitado por padrão
     )
     
-    automation = DesktopIconAutomation(config)
+    rpa = DesktopIconAutomation(config)
     
-    print("\n✓ PASSO 1: Abrindo o ReceitanetBX")
-    result_double_click = automation.double_click_desktop_icon("icon.png")
+    # Exemplo usando wait_for_image para aguardar o ícone aparecer
+    print("\n✓ PASSO 1: Aguardando ícone ficar visível...")
+    wait_for_receitanetbx_icon = rpa.wait_for_image("icon.png", timeout=10)
     
-    if result_double_click == AutomationResult.SUCCESS:
-        print("\n✓ PASSO 2: Selecionando o certificado digital...")
-        time.sleep(3)
-        automation.single_click_image("cert.png")
+    if wait_for_receitanetbx_icon == AutomationResult.SUCCESS:
+        print("\n✓ PASSO 2: Abrindo o ReceitanetBX")
+        rpa.double_click_desktop_icon("icon.png")
         
-        print("\n✓ PASSO 3: Selecionando o perfil de acesso...")
+        print("\n✓ PASSO 3: Aguardando certificado aparecer...")
+        rpa.wait_for_image("cert.png", timeout=120)
             
-        print("\n✓ PASSO 4: Entrando no sistema...")
-        time.sleep(1)
-        automation.single_click_image("entrar.png")
-       
+        print("\n✓ PASSO 4: Selecionando o certificado digital...")
+        rpa.single_click_image("cert.png")
+                
+        print("\n✓ PASSO 5: Selecionando o perfil de acesso...")
+                
+        print("\n✓ PASSO 6: Aguardando botão entrar aparecer...")
+        rpa.wait_for_image("entrar.png", timeout=10)
+                
+        print("\n✓ PASSO 7: Entrando no sistema...")
+        rpa.single_click_image("entrar.png")
     else:
-        print(f"\n❌ ERRO: {result_double_click.value}")
+        print(f"\n❌ ERRO: Ícone não encontrado: {wait_for_receitanetbx_icon.value}")
 
 
 if __name__ == "__main__":
