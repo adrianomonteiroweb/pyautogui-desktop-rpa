@@ -54,15 +54,11 @@ class RPA:
                 print(f"✗ Não foi possível localizar {description}")
                 return RPAResult.IMAGE_NOT_FOUND
             
-            print(f"🔍 Encontradas {len(all_locations)} ocorrência(s) de {description}:")
-            
             if len(all_locations) == 1:
                 location = all_locations[0]
                 center = pay.center(location)
-                print(f"  Posição única encontrada: {center}")
                 
                 pay.doubleClick(center, interval=self.config.double_click_interval)
-                print(f"✓ Double click realizado em {description}")
                 return RPAResult.SUCCESS
             
             else:
@@ -73,10 +69,8 @@ class RPA:
                 
                 location = all_locations[0]
                 center = pay.center(location)
-                print(f"  🎯 Clicando na primeira ocorrência: {center}")
                 
                 pay.doubleClick(center, interval=self.config.double_click_interval)
-                print(f"✓ Double click realizado em {description}")
                 return RPAResult.SUCCESS
                 
         except Exception as e:
@@ -91,15 +85,11 @@ class RPA:
                 print(f"✗ Não foi possível localizar {description}")
                 return RPAResult.IMAGE_NOT_FOUND
             
-            print(f"🔍 Encontradas {len(all_locations)} ocorrência(s) de {description}:")
-            
             if len(all_locations) == 1:
                 location = all_locations[0]
                 center = pay.center(location)
-                print(f"  Posição única encontrada: {center}")
                 
                 pay.click(center)
-                print(f"✓ Click único realizado em {description}")
                 return RPAResult.SUCCESS
             
             else:
@@ -110,17 +100,15 @@ class RPA:
                 
                 location = all_locations[0]
                 center = pay.center(location)
-                print(f"  🎯 Clicando na primeira ocorrência: {center}")
                 
                 pay.click(center)
-                print(f"✓ Click único realizado em {description}")
                 return RPAResult.SUCCESS
                 
         except Exception as e:
             print(f"✗ Erro ao tentar dar click único em {description}: {e}")
             return RPAResult.CLICK_FAILED
     
-    def _wait_with_countdown(self, seconds: int, message: str = "Iniciando automação") -> None:
+    def _wait_with_countdown(self, seconds: int, message: str = "Iniciando...") -> None:
         print(f"{message} em {seconds} segundos...")
 
         for i in range(seconds, 0, -1):
@@ -143,8 +131,7 @@ class RPA:
                 location = pay.locateOnScreen(image_path, confidence=self.config.confidence)
                 
                 if location is not None:
-                    center = pay.center(location)
-                    print(f"✓ Imagem {image_filename} encontrada após {elapsed_time:.1f}s na posição: {center}")
+                    pay.center(location)
                     return RPAResult.SUCCESS
                 
                 print(f"⏳ Aguardando... ({elapsed_time:.1f}s/{timeout}s)")
