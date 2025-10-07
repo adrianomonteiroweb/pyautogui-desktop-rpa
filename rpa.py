@@ -1,4 +1,4 @@
-import pyautogui as pay
+import pyautogui as PyAutoGui
 import time
 import os
 from typing import Tuple
@@ -29,8 +29,8 @@ class RPA:
         self._setup_pyautogui()
     
     def _setup_pyautogui(self) -> None:
-        pay.FAILSAFE = True
-        pay.PAUSE = 0.1
+        PyAutoGui.FAILSAFE = True
+        PyAutoGui.PAUSE = 0.1
     
     def _get_image_path(self, filename: str) -> str:
         return os.path.join(self.config.images_folder, filename)
@@ -40,7 +40,7 @@ class RPA:
     
     def _find_all_image_locations(self, image_path: str) -> list:
         try:
-            locations = list(pay.locateAllOnScreen(image_path, confidence=self.config.confidence))
+            locations = list(PyAutoGui.locateAllOnScreen(image_path, confidence=self.config.confidence))
             return locations
         except Exception as e:
             print(f"Erro ao procurar imagem: {e}")
@@ -56,21 +56,21 @@ class RPA:
             
             if len(all_locations) == 1:
                 location = all_locations[0]
-                center = pay.center(location)
+                center = PyAutoGui.center(location)
                 
-                pay.doubleClick(center, interval=self.config.double_click_interval)
+                PyAutoGui.doubleClick(center, interval=self.config.double_click_interval)
                 return RPAResult.SUCCESS
             
             else:
                 print("  Múltiplas ocorrências encontradas:")
                 for i, location in enumerate(all_locations, 1):
-                    center = pay.center(location)
+                    center = PyAutoGui.center(location)
                     print(f"    {i}. Posição: {center}")
                 
                 location = all_locations[0]
-                center = pay.center(location)
+                center = PyAutoGui.center(location)
                 
-                pay.doubleClick(center, interval=self.config.double_click_interval)
+                PyAutoGui.doubleClick(center, interval=self.config.double_click_interval)
                 return RPAResult.SUCCESS
                 
         except Exception as e:
@@ -87,21 +87,21 @@ class RPA:
             
             if len(all_locations) == 1:
                 location = all_locations[0]
-                center = pay.center(location)
+                center = PyAutoGui.center(location)
                 
-                pay.click(center)
+                PyAutoGui.click(center)
                 return RPAResult.SUCCESS
             
             else:
                 print("  Múltiplas ocorrências encontradas:")
                 for i, location in enumerate(all_locations, 1):
-                    center = pay.center(location)
+                    center = PyAutoGui.center(location)
                     print(f"    {i}. Posição: {center}")
                 
                 location = all_locations[0]
-                center = pay.center(location)
+                center = PyAutoGui.center(location)
                 
-                pay.click(center)
+                PyAutoGui.click(center)
                 return RPAResult.SUCCESS
                 
         except Exception as e:
@@ -128,10 +128,10 @@ class RPA:
         
         while elapsed_time < timeout:
             try:
-                location = pay.locateOnScreen(image_path, confidence=self.config.confidence)
+                location = PyAutoGui.locateOnScreen(image_path, confidence=self.config.confidence)
                 
                 if location is not None:
-                    pay.center(location)
+                    PyAutoGui.center(location)
                     return RPAResult.SUCCESS
                 
                 print(f"⏳ Aguardando... ({elapsed_time:.1f}s/{timeout}s)")
@@ -208,14 +208,14 @@ class RPA:
         self.wait_for_image("cnpj_input.png", timeout=10)
         self.single_click_image("cnpj_input.png")
         
-        pay.write(cnpj, interval=0.1)
+        PyAutoGui.write(cnpj, interval=0.1)
         time.sleep(1)
 
         print("\nEntrando no sistema...")
         self.wait_for_image("entrar.png", timeout=10)
         return self.single_click_image("entrar.png")
     
-    def search(self) -> RPAResult:
+    def search(self, start_date: str = "01012020", end_date: str = "31122024") -> RPAResult:
         print("\nPesquisando arquivos...")
         self.wait_for_image("lupa.png", timeout=10)
         time.sleep(1)
@@ -223,7 +223,14 @@ class RPA:
 
         self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png")
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png")
-        return self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png")
+        self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png")
+
+        PyAutoGui.write(start_date, interval=0.1)
+        PyAutoGui.press("Tab")
+        PyAutoGui.write(end_date, interval=0.1)
+        PyAutoGui.press("Enter")
+
+        return self.single_click_image("pesquisar.png")
 
     def _selectOption(self, combo_image: str, option_image: str, attempts: int = 2) -> RPAResult:
         for attempt in range(attempts):
