@@ -5,6 +5,8 @@ from typing import Tuple
 from dataclasses import dataclass
 from enum import Enum
 
+from json_manager import JSONManager
+
 
 class RPAResult(Enum):
     SUCCESS = "success"
@@ -32,8 +34,11 @@ class RPA:
         PyAutoGui.FAILSAFE = True
         PyAutoGui.PAUSE = 0.1
     
-    def _get_image_path(self, filename: str) -> str:
-        return os.path.join(self.config.images_folder, filename)
+    def _get_image_path(self, alias, filename: str) -> str:
+        if alias:
+            return os.path.join(self.config.images_folder, alias, filename)
+        else:
+            return os.path.join(self.config.images_folder, filename)
     
     def _validate_image_file(self, image_path: str) -> bool:
         return os.path.exists(image_path)
@@ -116,9 +121,9 @@ class RPA:
             time.sleep(1)
 
         print("Iniciando...")
-    
-    def wait_for_image(self, image_filename: str, timeout: int = 30, check_interval: float = 1.0) -> RPAResult:
-        image_path = self._get_image_path(image_filename)
+
+    def wait_for_image(self, image_filename: str, alias: str = "", timeout: int = 30, check_interval: float = 1.0) -> RPAResult:
+        image_path = self._get_image_path(alias, image_filename)
         
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
@@ -146,9 +151,9 @@ class RPA:
         print(f"✗ Timeout: Imagem {image_filename} não foi encontrada em {timeout} segundos")
         return RPAResult.IMAGE_NOT_FOUND
     
-    def single_click_image(self, image_filename: str) -> RPAResult:
-        image_path = self._get_image_path(image_filename)
-        
+    def single_click_image(self, image_filename: str, alias: str = "") -> RPAResult:
+        image_path = self._get_image_path(alias, image_filename)
+
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
             return RPAResult.FILE_NOT_EXISTS
@@ -165,7 +170,7 @@ class RPA:
     def double_click_image(self, icon_filename: str = "icon.png") -> RPAResult:
         self._wait_with_countdown(self.config.startup_delay, "Procurando ícone no desktop")
         
-        image_path = self._get_image_path(icon_filename)
+        image_path = self._get_image_path("", icon_filename)
         
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
@@ -192,8 +197,14 @@ class RPA:
 
     def login_por_certificado(self) -> RPAResult:
         print("\nSelecionando o certificado digital...")
-        self.wait_for_image("cert.png", timeout=120)
-        self.single_click_image("cert.png")
+
+        json_manager = JSONManager()
+        settings = json_manager.get_settings()
+        certificado = settings.get("certificado", "cert.png")
+        
+        print(f"Usando certificado: {certificado}")
+        self.wait_for_image(f"{certificado}.png", "certificados", timeout=120)
+        self.single_click_image(f"{certificado}.png", "certificados")
 
         print("\nSelecionando o perfil...")
         self.single_click_image("combo_perfil.png")

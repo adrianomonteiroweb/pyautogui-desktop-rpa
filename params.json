@@ -1,0 +1,5 @@
+{
+  "timeout": 30,
+  "retry_attempts": 3,
+  "debug_mode": false
+}
