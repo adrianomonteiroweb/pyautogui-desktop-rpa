@@ -1,4 +1,5 @@
 from rpa import RPA, RPAResult
+from csv_manager import ler_arquivo_csv, exibir_dados_csv
 
 def main():
     # Inicializa o RPA
@@ -17,19 +18,28 @@ def main():
         print(f"❌ Falha no login: {login_result}")
         return
     
-    empresa_result = rpa.typeCNPJ("06097786000193")
+    empresas = ler_arquivo_csv("empresas")
 
-    if empresa_result != RPAResult.SUCCESS:
-        print(f"❌ Falha na seleção da empresa: {empresa_result.value}")
+    if not empresas:
+        print("❌ Falha ao ler o arquivo de empresas.")
         return
     
-    search_result = rpa.search()
+    print(f"Encontradas {len(empresas)} empresas no arquivo CSV.")
 
-    if search_result != RPAResult.SUCCESS:
-        print(f"❌ Falha na pesquisa: {search_result.value}")
-        return
-    
-    print("\n🎉 Automação concluída com sucesso!")
+    for empresa in empresas:
+        empresa_result = rpa.typeCNPJ(empresa['cnpj'])
+
+        if empresa_result != RPAResult.SUCCESS:
+            print(f"❌ Falha na seleção da empresa: {empresa_result.value}")
+            return
+        
+        search_result = rpa.search()
+
+        if search_result != RPAResult.SUCCESS:
+            print(f"❌ Falha na pesquisa: {search_result.value}")
+            return
+        
+        print("\n🎉 Automação concluída com sucesso!")
 
 
 if __name__ == "__main__":
