@@ -44,9 +44,10 @@ class RPA:
     def _validate_image_file(self, image_path: str) -> bool:
         return os.path.exists(image_path)
     
-    def _find_all_image_locations(self, image_path: str) -> list:
+    def _find_all_image_locations(self, image_path: str, confidence: float = None) -> list:
         try:
-            locations = list(PyAutoGui.locateAllOnScreen(image_path, confidence=self.config.confidence))
+            conf = confidence if confidence is not None else self.config.confidence
+            locations = list(PyAutoGui.locateAllOnScreen(image_path, confidence=conf))
             return locations
         except Exception as e:
             print(f"Erro ao procurar imagem: {e}")
@@ -54,7 +55,14 @@ class RPA:
     
     def _locate_and_double_click_image(self, image_path: str, description: str, silent: bool = False) -> RPAResult:
         try:
+            # Tenta primeiro com confidence padrão
             all_locations = self._find_all_image_locations(image_path)
+            
+            # Se não encontrar, tenta com confidence menor
+            if not all_locations and self.config.confidence > 0.6:
+                if not silent:
+                    print(f"⚠ Tentando com menor precisão para {description}...")
+                all_locations = self._find_all_image_locations(image_path, confidence=0.6)
             
             if not all_locations:
                 if not silent:
@@ -88,7 +96,14 @@ class RPA:
 
     def _locate_and_single_click_image(self, image_path: str, description: str, silent: bool = False) -> RPAResult:
         try:
+            # Tenta primeiro com confidence padrão
             all_locations = self._find_all_image_locations(image_path)
+            
+            # Se não encontrar, tenta com confidence menor
+            if not all_locations and self.config.confidence > 0.6:
+                if not silent:
+                    print(f"⚠ Tentando com menor precisão para {description}...")
+                all_locations = self._find_all_image_locations(image_path, confidence=0.6)
             
             if not all_locations:
                 if not silent:
@@ -137,10 +152,19 @@ class RPA:
             return RPAResult.FILE_NOT_EXISTS
         
         elapsed_time = 0.0
+        tried_lower_confidence = False
         
         while elapsed_time < timeout:
             try:
-                location = PyAutoGui.locateOnScreen(image_path, confidence=self.config.confidence)
+                confidence_to_use = self.config.confidence
+                
+                # Se já passou da metade do tempo e ainda não tentou com menor confidence
+                if elapsed_time > timeout / 2 and not tried_lower_confidence and self.config.confidence > 0.6:
+                    confidence_to_use = 0.6
+                    tried_lower_confidence = True
+                    print(f"⚠ Tentando com menor precisão para {image_filename}...")
+                
+                location = PyAutoGui.locateOnScreen(image_path, confidence=confidence_to_use)
                 
                 if location is not None:
                     PyAutoGui.center(location)
@@ -237,17 +261,20 @@ class RPA:
         time.sleep(5)
         print("\nFechando o ReceitanetBX...")
         
-        result = self._single_click_image("sair.png", "botoes", silent=True)
-        if result == RPAResult.SUCCESS:
-            return
+        # Tenta múltiplas estratégias para fechar o programa
+        close_buttons = [
+            ("sair.png", "botoes"),
+            ("fechar.png", "botoes"),
+            ("fechar2.png", "botoes")
+        ]
         
-        result = self._single_click_image("fechar.png", "botoes", silent=True)
-        if result == RPAResult.SUCCESS:
-            return
+        for button_file, button_alias in close_buttons:
+            result = self._single_click_image(button_file, button_alias, silent=True)
+            if result == RPAResult.SUCCESS:
+                print(f"✅ ReceitanetBX fechado usando: {button_file}")
+                return
         
-        result = self._double_click_image("fechar2.png", "botoes", silent=True)
-        if result == RPAResult.SUCCESS:
-            return
+        print("⚠ Não foi possível fechar o ReceitanetBX automaticamente")
         
     def login_por_certificado(self) -> RPAResult:
         print("\nSelecionando o certificado digital...")
@@ -257,11 +284,22 @@ class RPA:
         certificado = settings.get("certificado", "cert.png")
         
         print(f"Usando certificado: {certificado}")
-        self._wait_for_image(f"{certificado}.png", "certificados", timeout=120)
-        self._single_click_image(f"{certificado}.png", "certificados")
+        cert_wait_result = self._wait_for_image(f"{certificado}.png", "certificados", timeout=120)
+        
+        if cert_wait_result != RPAResult.SUCCESS:
+            return cert_wait_result
+            
+        cert_click_result = self._single_click_image(f"{certificado}.png", "certificados")
+        
+        if cert_click_result != RPAResult.SUCCESS:
+            return cert_click_result
 
         print("\nSelecionando o perfil...")
-        self._single_click_image("combo_perfil.png", "comboboxes/perfil")
+        combo_result = self._single_click_image("combo_perfil.png", "comboboxes/perfil")
+        
+        if combo_result != RPAResult.SUCCESS:
+            return combo_result
+            
         return self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
 
     def typeCNPJ(self, cnpj) -> RPAResult:
@@ -275,8 +313,8 @@ class RPA:
         print("\nEntrando no sistema...")
         return self._single_click_image("entrar.png", "botoes")
     
-    def search(self) -> RPAResult:
-        print("\nPesquisando arquivos...")
+    def _searchSPEDContribuicoes(self) -> RPAResult:
+        print("\nPesquisando arquivos de SPED Contribuições...")
         self._double_click_image("lupa.png", "botoes")
 
         self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
@@ -296,6 +334,22 @@ class RPA:
 
         return self._single_click_image("pesquisar.png", "botoes")
     
+    def _searchSPEDFiscal(self) -> RPAResult:
+        print("\nPesquisando arquivos de SPED Fiscal...")
+        time.sleep(10)
+        # TODO: Implementar a busca por SPED Fiscal - por enquanto retorna sucesso
+        return RPAResult.SUCCESS
+        
+
+    def search(self, tipo) -> RPAResult:
+        if tipo == "sped_contribuicoes":
+            return self._searchSPEDContribuicoes()
+        elif tipo == "sped_fiscal":
+            return self._searchSPEDFiscal()
+        else:
+            print(f"⚠ Tipo de pesquisa não reconhecido: {tipo}")
+            return RPAResult.IMAGE_NOT_FOUND
+
     def request_files(self) -> RPAResult:
         time.sleep(3)
         print("\nSolicitando arquivos...")
