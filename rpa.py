@@ -122,7 +122,7 @@ class RPA:
 
         print("Iniciando...")
 
-    def wait_for_image(self, image_filename: str, alias: str = "", timeout: int = 30, check_interval: float = 1.0) -> RPAResult:
+    def _wait_for_image(self, image_filename: str, alias: str = "", timeout: int = 30, check_interval: float = 1.0) -> RPAResult:
         image_path = self._get_image_path(alias, image_filename)
         
         if not self._validate_image_file(image_path):
@@ -151,7 +151,7 @@ class RPA:
         print(f"✗ Timeout: Imagem {image_filename} não foi encontrada em {timeout} segundos")
         return RPAResult.IMAGE_NOT_FOUND
     
-    def single_click_image(self, image_filename: str, alias: str = "") -> RPAResult:
+    def _single_click_image(self, image_filename: str, alias: str = "") -> RPAResult:
         image_path = self._get_image_path(alias, image_filename)
 
         if not self._validate_image_file(image_path):
@@ -167,10 +167,10 @@ class RPA:
         
         return result
 
-    def double_click_image(self, icon_filename: str = "icon.png") -> RPAResult:
+    def _double_click_image(self, icon_filename: str = "icon.png", alias: str = "") -> RPAResult:
         self._wait_with_countdown(self.config.startup_delay, "Procurando ícone no desktop")
         
-        image_path = self._get_image_path("", icon_filename)
+        image_path = self._get_image_path(alias, icon_filename)
         
         if not self._validate_image_file(image_path):
             print(f"✗ Arquivo de imagem não encontrado: {image_path}")
@@ -187,10 +187,10 @@ class RPA:
 
     def init(self) -> RPAResult:
         print("\nAbrindo o ReceitanetBX...")
-        wait_result = self.wait_for_image("icon.png", timeout=10)
+        wait_result = self._wait_for_image("icon.png", "botoes", timeout=10)
         
         if wait_result == RPAResult.SUCCESS:
-            return self.double_click_image("icon.png")
+            return self._double_click_image("icon.png", "botoes")
         else:
             print(f"\n❌ ERRO: {wait_result.value}")
             return wait_result
@@ -203,34 +203,29 @@ class RPA:
         certificado = settings.get("certificado", "cert.png")
         
         print(f"Usando certificado: {certificado}")
-        self.wait_for_image(f"{certificado}.png", "certificados", timeout=120)
-        self.single_click_image(f"{certificado}.png", "certificados")
+        self._wait_for_image(f"{certificado}.png", "certificados", timeout=120)
+        self._single_click_image(f"{certificado}.png", "certificados")
 
         print("\nSelecionando o perfil...")
-        self.single_click_image("combo_perfil.png")
-        return self.single_click_image("opcao_procurador.png")
+        self._single_click_image("combo_perfil.png", "comboboxes/perfil")
+        return self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
 
     def typeCNPJ(self, cnpj) -> RPAResult:
         print(f"\nDigitando CNPJ: {cnpj}...")
-        self.wait_for_image("combo_tipo_doc.png", timeout=10)
-        self.single_click_image("combo_tipo_doc.png")
-        self.wait_for_image("opcao_cnpj.png", timeout=10)
-        self.single_click_image("opcao_cnpj.png")
-        self.wait_for_image("cnpj_input.png", timeout=10)
-        self.single_click_image("cnpj_input.png")
+        self._single_click_image("combo_tipo_doc.png", "comboboxes/tipo_doc")
+        self._single_click_image("opcao_cnpj.png", "comboboxes/tipo_doc")
+        self._single_click_image("cnpj_input.png", "inputs")
         
         PyAutoGui.write(cnpj, interval=0.1)
         time.sleep(1)
 
         print("\nEntrando no sistema...")
-        self.wait_for_image("entrar.png", timeout=10)
-        return self.single_click_image("entrar.png")
+        return self._single_click_image("entrar.png", "botoes")
     
     def search(self, start_date: str = "01012020", end_date: str = "31122024") -> RPAResult:
         print("\nPesquisando arquivos...")
-        self.wait_for_image("lupa.png", timeout=10)
         time.sleep(1)
-        self.single_click_image("lupa.png")
+        self._single_click_image("lupa.png", "botoes")
 
         self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png")
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png")
@@ -241,12 +236,12 @@ class RPA:
         PyAutoGui.write(end_date, interval=0.1)
         PyAutoGui.press("Enter")
 
-        return self.single_click_image("pesquisar.png")
+        return self._single_click_image("pesquisar.png", "botoes")
 
     def _selectOption(self, combo_image: str, option_image: str, attempts: int = 2) -> RPAResult:
         for attempt in range(attempts):
             
-            combo_result = self.wait_for_image(combo_image, timeout=10)
+            combo_result = self._wait_for_image(combo_image, timeout=10)
 
             if combo_result != RPAResult.SUCCESS:
                 if attempt < attempts - 1:
@@ -255,12 +250,12 @@ class RPA:
                 else:
                     return combo_result
             
-            self.single_click_image(combo_image)
+            self._single_click_image(combo_image)
             
-            option_result = self.wait_for_image(option_image, timeout=10)
+            option_result = self._wait_for_image(option_image, timeout=10)
 
             if option_result == RPAResult.SUCCESS:
-                click_result = self.single_click_image(option_image)
+                click_result = self._single_click_image(option_image)
                 
                 if click_result == RPAResult.SUCCESS:
                     return RPAResult.SUCCESS
