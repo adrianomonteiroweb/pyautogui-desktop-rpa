@@ -1,6 +1,8 @@
 import time
+
 from rpa import RPA, RPAResult
 from csv_manager import ler_arquivo_csv
+from files_manager import FilesManager
 
 def main():
     rpa = RPA()
@@ -38,7 +40,28 @@ def main():
             if search_result != RPAResult.SUCCESS:
                 print(f"❌ Falha na pesquisa: {search_result.value}")
                 return
+
+            request_result = rpa.request_files()
+
+            if request_result != RPAResult.SUCCESS:
+                print(f"❌ Falha na solicitação dos arquivos: {request_result.value}")
+                return
             
+            downloads_result = rpa.download_files()
+
+            if downloads_result != RPAResult.SUCCESS:
+                print(f"❌ Falha no download dos arquivos: {downloads_result.value}")
+                return
+            
+            print("Movendo arquivos baixados...")
+            files_manager = FilesManager()
+            move_result = files_manager.move_files()
+            
+            if move_result["success"]:
+                print(f"✅ {move_result['message']}")
+            else:
+                print(f"❌ Erro ao mover arquivos: {move_result.get('error', 'Erro desconhecido')}")
+
             print("\n🎉 Automação concluída com sucesso!")
 
     except Exception as e:

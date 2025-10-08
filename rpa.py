@@ -151,7 +151,6 @@ class RPA:
                 elapsed_time += check_interval
                 
             except Exception as e:
-                print(f"⚠ Erro durante a busca: {e}")
                 time.sleep(check_interval)
                 elapsed_time += check_interval
         
@@ -197,6 +196,33 @@ class RPA:
         
         return result
 
+    def _selectOption(self, combo_image: str, option_image: str, alias: str, attempts: int = 2) -> RPAResult:
+        for attempt in range(attempts):
+            
+            combo_result = self._wait_for_image(combo_image, alias, timeout=10)
+
+            if combo_result != RPAResult.SUCCESS:
+                if attempt < attempts - 1:
+                    time.sleep(1)
+                    continue
+                else:
+                    return combo_result
+            
+            self._single_click_image(combo_image, alias)
+            
+            option_result = self._wait_for_image(option_image, alias, timeout=10)
+
+            if option_result == RPAResult.SUCCESS:
+                click_result = self._single_click_image(option_image, alias)
+                
+                if click_result == RPAResult.SUCCESS:
+                    return RPAResult.SUCCESS    
+            
+            if attempt < attempts - 1:
+                time.sleep(1)
+        
+        return RPAResult.IMAGE_NOT_FOUND
+    
     def init(self) -> RPAResult:
         print("\nAbrindo o ReceitanetBX...")
         wait_result = self._wait_for_image("icon.png", "botoes", timeout=10)
@@ -251,7 +277,7 @@ class RPA:
     
     def search(self) -> RPAResult:
         print("\nPesquisando arquivos...")
-        self._single_click_image("lupa.png", "botoes")
+        self._double_click_image("lupa.png", "botoes")
 
         self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
@@ -269,31 +295,41 @@ class RPA:
         PyAutoGui.press("Enter")
 
         return self._single_click_image("pesquisar.png", "botoes")
+    
+    def request_files(self) -> RPAResult:
+        time.sleep(3)
+        print("\nSolicitando arquivos...")
+        self._single_click_image("checkbox_todos.png", "checkboxes")
+        time.sleep(1)
+        self._single_click_image("coluna_data_inicio.png", "tabelas")
+        time.sleep(1)
+        self._single_click_image("solicitar_arquivos.png", "botoes")
 
-    def _selectOption(self, combo_image: str, option_image: str, alias: str, attempts: int = 2) -> RPAResult:
-        for attempt in range(attempts):
-            
-            combo_result = self._wait_for_image(combo_image, alias, timeout=10)
+        confirm_result = self._wait_for_image("modal_sucesso.png", "modais")
 
-            if combo_result != RPAResult.SUCCESS:
-                if attempt < attempts - 1:
-                    time.sleep(1)
-                    continue
-                else:
-                    return combo_result
-            
-            self._single_click_image(combo_image, alias)
-            
-            option_result = self._wait_for_image(option_image, alias, timeout=10)
-
-            if option_result == RPAResult.SUCCESS:
-                click_result = self._single_click_image(option_image, alias)
-                
-                if click_result == RPAResult.SUCCESS:
-                    return RPAResult.SUCCESS    
-            
-            if attempt < attempts - 1:
-                time.sleep(1)
+        if confirm_result == RPAResult.SUCCESS:
+            time.sleep(2)
+            PyAutoGui.press("enter")
+            return RPAResult.SUCCESS
+        else:
+            return confirm_result
         
-        return RPAResult.IMAGE_NOT_FOUND
-        
+    def download_files(self) -> RPAResult:
+        print("\nBaixando arquivos...")
+
+        self._single_click_image("acompanhamento.png", "botoes")
+        self._single_click_image("ultima_solicitacao.png", "tabelas")
+        time.sleep(2)
+        self._single_click_image("checkbox_todos.png", "checkboxes")
+        time.sleep(3)
+        self._single_click_image("baixar.png", "botoes")
+        time.sleep(3)
+
+        downloads_concluidos = self._wait_for_image("fila_de_downloads.png", "tabelas", timeout=60 * 5)
+
+        if downloads_concluidos == RPAResult.SUCCESS:
+            print("🎉 Todos os arquivos foram baixados com sucesso!")
+            return RPAResult.SUCCESS
+        else:
+            print(f"❌ Falha no download dos arquivos: {downloads_concluidos.value}")
+            return downloads_concluidos
