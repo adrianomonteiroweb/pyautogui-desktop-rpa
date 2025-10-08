@@ -2,21 +2,7 @@ from rpa import RPA, RPAResult
 from csv_manager import ler_arquivo_csv, exibir_dados_csv
 
 def main():
-    # Inicializa o RPA
     rpa = RPA()
-    
-    # Executa o fluxo de automação
-    init_result = rpa.init()
-
-    if init_result != RPAResult.SUCCESS:
-        print(f"❌ Falha na inicialização: {init_result.value}")
-        return
-    
-    login_result = rpa.login_por_certificado()
-
-    if login_result != RPAResult.SUCCESS:
-        print(f"❌ Falha no login: {login_result}")
-        return
     
     empresas = ler_arquivo_csv("empresas")
 
@@ -27,6 +13,18 @@ def main():
     print(f"Encontradas {len(empresas)} empresas no arquivo CSV.")
 
     for empresa in empresas:
+        init_result = rpa.init()
+
+        if init_result != RPAResult.SUCCESS:
+            print(f"❌ Falha na inicialização: {init_result.value}")
+            return
+    
+        login_result = rpa.login_por_certificado()
+
+        if login_result != RPAResult.SUCCESS:
+            print(f"❌ Falha no login: {login_result}")
+            return
+    
         empresa_result = rpa.typeCNPJ(empresa['cnpj'])
 
         if empresa_result != RPAResult.SUCCESS:
@@ -40,6 +38,8 @@ def main():
             return
         
         print("\n🎉 Automação concluída com sucesso!")
+
+        rpa.close()
 
 
 if __name__ == "__main__":

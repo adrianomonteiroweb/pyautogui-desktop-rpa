@@ -52,12 +52,13 @@ class RPA:
             print(f"Erro ao procurar imagem: {e}")
             return []
     
-    def _locate_and_double_click_image(self, image_path: str, description: str) -> RPAResult:
+    def _locate_and_double_click_image(self, image_path: str, description: str, silent: bool = False) -> RPAResult:
         try:
             all_locations = self._find_all_image_locations(image_path)
             
             if not all_locations:
-                print(f"✗ Não foi possível localizar {description}")
+                if not silent:
+                    print(f"✗ Não foi possível localizar {description}")
                 return RPAResult.IMAGE_NOT_FOUND
             
             if len(all_locations) == 1:
@@ -68,10 +69,11 @@ class RPA:
                 return RPAResult.SUCCESS
             
             else:
-                print("  Múltiplas ocorrências encontradas:")
-                for i, location in enumerate(all_locations, 1):
-                    center = PyAutoGui.center(location)
-                    print(f"    {i}. Posição: {center}")
+                if not silent:
+                    print("  Múltiplas ocorrências encontradas:")
+                    for i, location in enumerate(all_locations, 1):
+                        center = PyAutoGui.center(location)
+                        print(f"    {i}. Posição: {center}")
                 
                 location = all_locations[0]
                 center = PyAutoGui.center(location)
@@ -80,15 +82,17 @@ class RPA:
                 return RPAResult.SUCCESS
                 
         except Exception as e:
-            print(f"✗ Erro ao tentar dar double click em {description}: {e}")
+            if not silent:
+                print(f"✗ Erro ao tentar dar double click em {description}: {e}")
             return RPAResult.CLICK_FAILED
 
-    def _locate_and_single_click_image(self, image_path: str, description: str) -> RPAResult:
+    def _locate_and_single_click_image(self, image_path: str, description: str, silent: bool = False) -> RPAResult:
         try:
             all_locations = self._find_all_image_locations(image_path)
             
             if not all_locations:
-                print(f"✗ Não foi possível localizar {description}")
+                if not silent:
+                    print(f"✗ Não foi possível localizar {description}")
                 return RPAResult.IMAGE_NOT_FOUND
             
             if len(all_locations) == 1:
@@ -99,10 +103,11 @@ class RPA:
                 return RPAResult.SUCCESS
             
             else:
-                print("  Múltiplas ocorrências encontradas:")
-                for i, location in enumerate(all_locations, 1):
-                    center = PyAutoGui.center(location)
-                    print(f"    {i}. Posição: {center}")
+                if not silent:
+                    print("  Múltiplas ocorrências encontradas:")
+                    for i, location in enumerate(all_locations, 1):
+                        center = PyAutoGui.center(location)
+                        print(f"    {i}. Posição: {center}")
                 
                 location = all_locations[0]
                 center = PyAutoGui.center(location)
@@ -111,7 +116,8 @@ class RPA:
                 return RPAResult.SUCCESS
                 
         except Exception as e:
-            print(f"✗ Erro ao tentar dar click único em {description}: {e}")
+            if not silent:
+                print(f"✗ Erro ao tentar dar click único em {description}: {e}")
             return RPAResult.CLICK_FAILED
     
     def _wait_with_countdown(self, seconds: int, message: str = "Iniciando...") -> None:
@@ -152,37 +158,42 @@ class RPA:
         print(f"✗ Timeout: Imagem {image_filename} não foi encontrada em {timeout} segundos")
         return RPAResult.IMAGE_NOT_FOUND
     
-    def _single_click_image(self, image_filename: str, alias: str = "") -> RPAResult:
+    def _single_click_image(self, image_filename: str, alias: str = "", silent: bool = False) -> RPAResult:
         image_path = self._get_image_path(alias, image_filename)
 
         if not self._validate_image_file(image_path):
-            print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+            if not silent:
+                print(f"✗ Arquivo de imagem não encontrado: {image_path}")
             return RPAResult.FILE_NOT_EXISTS
         
-        result = self._locate_and_single_click_image(image_path, f"imagem ({image_filename})")
+        result = self._locate_and_single_click_image(image_path, f"imagem ({image_filename})", silent)
         
-        if result == RPAResult.CLICK_FAILED:
-            print("✗ Falha ao executar o click único")
-        elif result == RPAResult.IMAGE_NOT_FOUND:
-            print(f"⚠ Imagem {image_filename} não encontrada na tela")
+        if not silent:
+            if result == RPAResult.CLICK_FAILED:
+                print("✗ Falha ao executar o click único")
+            elif result == RPAResult.IMAGE_NOT_FOUND:
+                print(f"⚠ Imagem {image_filename} não encontrada na tela")
         
         return result
 
-    def _double_click_image(self, icon_filename: str = "icon.png", alias: str = "") -> RPAResult:
-        self._wait_with_countdown(self.config.startup_delay, "Procurando ícone no desktop")
+    def _double_click_image(self, icon_filename: str = "icon.png", alias: str = "", silent: bool = False) -> RPAResult:
+        if not silent:
+            self._wait_with_countdown(self.config.startup_delay, "Procurando ícone no desktop")
         
         image_path = self._get_image_path(alias, icon_filename)
         
         if not self._validate_image_file(image_path):
-            print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+            if not silent:
+                print(f"✗ Arquivo de imagem não encontrado: {image_path}")
             return RPAResult.FILE_NOT_EXISTS
         
-        result = self._locate_and_double_click_image(image_path, f"ícone ({icon_filename})")
+        result = self._locate_and_double_click_image(image_path, f"ícone ({icon_filename})", silent)
         
-        if result == RPAResult.CLICK_FAILED:
-            print("✗ Falha ao executar o double click")
-        elif result == RPAResult.IMAGE_NOT_FOUND:
-            print("⚠ Ícone não encontrado na tela")
+        if not silent:
+            if result == RPAResult.CLICK_FAILED:
+                print("✗ Falha ao executar o double click")
+            elif result == RPAResult.IMAGE_NOT_FOUND:
+                print("⚠ Ícone não encontrado na tela")
         
         return result
 
@@ -195,7 +206,23 @@ class RPA:
         else:
             print(f"\n❌ ERRO: {wait_result.value}")
             return wait_result
-
+        
+    def close(self) -> None:
+        time.sleep(5)
+        print("\nFechando o ReceitanetBX...")
+        
+        result = self._single_click_image("sair.png", "botoes", silent=True)
+        if result == RPAResult.SUCCESS:
+            return
+        
+        result = self._single_click_image("fechar.png", "botoes", silent=True)
+        if result == RPAResult.SUCCESS:
+            return
+        
+        result = self._double_click_image("fechar2.png", "botoes", silent=True)
+        if result == RPAResult.SUCCESS:
+            return
+        
     def login_por_certificado(self) -> RPAResult:
         print("\nSelecionando o certificado digital...")
 
