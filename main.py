@@ -55,7 +55,7 @@ def main():
             
             print("Movendo arquivos baixados...")
             files_manager = FilesManager()
-            move_result = files_manager.move_files()
+            move_result = files_manager.move_files(data=empresa)
             
             if move_result["success"]:
                 print(f"✅ {move_result['message']}")

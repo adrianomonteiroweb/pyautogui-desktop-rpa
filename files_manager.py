@@ -1,6 +1,7 @@
 import os
 import shutil
 import getpass
+import re
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from json_manager import JSONManager
@@ -14,14 +15,59 @@ class FilesManager:
         self.current_user = getpass.getuser()
         self.source_folder = fr"C:\Users\{self.current_user}\Documents\Arquivos ReceitanetBX"
     
-    def _get_destination_path(self) -> str:
-        """Obtém o caminho de destino do settings.json"""
+    def _render_template(self, template: str, data: Dict[str, Any]) -> str:
+        """
+        Renderiza um template substituindo variáveis no formato {{key}} pelos valores do dicionário
+        Similar ao Mustache.js, mas com funcionalidade básica.
+        
+        Exemplos:
+            template = "C:/arquivos/{{cnpj}}/{{ie}}"
+            data = {"cnpj": "12345678000195", "ie": "123456789"}
+            resultado = "C:/arquivos/12345678000195/123456789"
+        
+        Args:
+            template: String com template contendo variáveis no formato {{key}}
+            data: Dicionário com os dados para substituição
+        
+        Returns:
+            String com as variáveis substituídas. Variáveis não encontradas permanecem inalteradas.
+        """
+        if not template:
+            return template
+        
+        # Regex para encontrar variáveis no formato {{key}}
+        pattern = r'\{\{([^}]+)\}\}'
+        
+        def replace_var(match):
+            var_name = match.group(1).strip()
+            if var_name in data:
+                return str(data[var_name])
+            else:
+                # Mantém a variável original se não encontrar o valor
+                return match.group(0)
+        
+        return re.sub(pattern, replace_var, template)
+    
+    def _get_destination_path(self, data: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Obtém o caminho de destino do settings.json, processando templates se data for fornecida
+        
+        Args:
+            data: Dicionário com dados para substituição de variáveis
+        
+        Returns:
+            Caminho de destino processado
+        """
         settings = self.json_manager.get_settings()
         arquivos_config = settings.get("arquivos", {})
         caminho = arquivos_config.get("caminho")
         
         if not caminho:
             raise ValueError("Caminho de destino não encontrado em settings.json -> arquivos.caminho")
+        
+        # Se data foi fornecida, processa o template
+        if data:
+            caminho = self._render_template(caminho, data)
         
         return caminho
     
@@ -55,7 +101,8 @@ class FilesManager:
     def move_files(self, 
                    extensions: Optional[List[str]] = None, 
                    custom_source: Optional[str] = None,
-                   custom_destination: Optional[str] = None) -> Dict[str, Any]:
+                   custom_destination: Optional[str] = None,
+                   data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Move arquivos em massa da pasta padrão para o destino configurado
         
@@ -63,12 +110,13 @@ class FilesManager:
             extensions: Lista de extensões para filtrar (ex: ['.pdf', '.xml'])
             custom_source: Caminho de origem personalizado (opcional)
             custom_destination: Caminho de destino personalizado (opcional)
+            data: Dicionário com dados para substituição de variáveis no caminho
         
         Returns:
             Dict com informações sobre a operação (arquivos movidos, erros, etc.)
         """
         source_path = custom_source or self.source_folder
-        destination_path = custom_destination or self._get_destination_path()
+        destination_path = custom_destination or self._get_destination_path(data)
         
         # Garante que os diretórios existem
         if not os.path.exists(source_path):
@@ -133,7 +181,8 @@ class FilesManager:
     def copy_files(self, 
                    extensions: Optional[List[str]] = None, 
                    custom_source: Optional[str] = None,
-                   custom_destination: Optional[str] = None) -> Dict[str, Any]:
+                   custom_destination: Optional[str] = None,
+                   empresa: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Copia arquivos em massa da pasta padrão para o destino configurado
         
@@ -141,12 +190,13 @@ class FilesManager:
             extensions: Lista de extensões para filtrar (ex: ['.pdf', '.xml'])
             custom_source: Caminho de origem personalizado (opcional)
             custom_destination: Caminho de destino personalizado (opcional)
+            empresa: Dicionário com dados da empresa para substituição de variáveis no caminho
         
         Returns:
             Dict com informações sobre a operação (arquivos copiados, erros, etc.)
         """
         source_path = custom_source or self.source_folder
-        destination_path = custom_destination or self._get_destination_path()
+        destination_path = custom_destination or self._get_destination_path(empresa)
         
         # Garante que os diretórios existem
         if not os.path.exists(source_path):
@@ -249,35 +299,78 @@ class FilesManager:
             "files": files_info
         }
     
-    def get_info(self) -> Dict[str, Any]:
+    def get_rendered_destination_path(self, empresa: Dict[str, Any]) -> str:
+        """
+        Obtém o caminho de destino renderizado com os dados da empresa
+        
+        Args:
+            empresa: Dicionário com dados da empresa para substituição de variáveis
+        
+        Returns:
+            Caminho de destino processado com as variáveis substituídas
+        """
+        return self._get_destination_path(empresa)
+    
+    def get_info(self, empresa: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Obtém informações sobre configuração atual
+        
+        Args:
+            empresa: Dicionário com dados da empresa para visualizar caminho renderizado
         
         Returns:
             Dict com informações de configuração
         """
         try:
-            destination_path = self._get_destination_path()
+            destination_path_template = self._get_destination_path()
+            if empresa:
+                destination_path_rendered = self._get_destination_path(empresa)
+            else:
+                destination_path_rendered = destination_path_template
         except Exception as e:
-            destination_path = f"ERRO: {str(e)}"
+            destination_path_template = f"ERRO: {str(e)}"
+            destination_path_rendered = destination_path_template
         
-        return {
+        info = {
             "current_user": self.current_user,
             "source_folder": self.source_folder,
-            "destination_folder": destination_path,
+            "destination_folder_template": destination_path_template,
             "source_exists": os.path.exists(self.source_folder)
         }
+        
+        if empresa:
+            info["destination_folder_rendered"] = destination_path_rendered
+            info["empresa_data"] = empresa
+        
+        return info
 
 
 # Exemplo de uso
 if __name__ == "__main__":
     files_manager = FilesManager()
     
-    # Mostra informações da configuração
+    # Dados de exemplo de uma empresa
+    empresa_exemplo = {
+        "cnpj": "06097786000193",
+        "razao_social": "EMPRESA EXEMPLO LTDA"
+    }
+    
+    # Mostra informações da configuração sem empresa
+    print("Informações de configuração (template):")
     info = files_manager.get_info()
-    print("Informações de configuração:")
     for key, value in info.items():
         print(f"  {key}: {value}")
+    
+    # Mostra informações da configuração com empresa (renderizado)
+    print("\nInformações de configuração (renderizado com empresa):")
+    info_with_empresa = files_manager.get_info(empresa_exemplo)
+    for key, value in info_with_empresa.items():
+        print(f"  {key}: {value}")
+    
+    # Exemplo de renderização de caminho
+    print(f"\nCaminho renderizado para CNPJ {empresa_exemplo['cnpj']}:")
+    rendered_path = files_manager.get_rendered_destination_path(empresa_exemplo)
+    print(f"  {rendered_path}")
     
     # Lista arquivos na pasta de origem
     print("\nListando arquivos na pasta de origem:")
@@ -289,6 +382,6 @@ if __name__ == "__main__":
     else:
         print(f"Erro: {files_list['error']}")
     
-    # Exemplo de movimentação de arquivos
-    # result = files_manager.move_files()
+    # Exemplo de movimentação de arquivos com template
+    # result = files_manager.move_files(empresa=empresa_exemplo)
     # print(f"\nResultado da movimentação: {result['message']}")
