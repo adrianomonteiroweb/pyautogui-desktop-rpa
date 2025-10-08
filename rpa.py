@@ -276,42 +276,59 @@ class RPA:
         
         print("⚠ Não foi possível fechar o ReceitanetBX automaticamente")
         
-    def login_por_certificado(self) -> RPAResult:
-        print("\nSelecionando o certificado digital...")
+    def _selecionar_certificado(self) -> RPAResult:
 
         json_manager = JSONManager()
         settings = json_manager.get_settings()
         certificado = settings.get("certificado", "cert.png")
         
-        print(f"Usando certificado: {certificado}")
+        print(f"Selecionando certificado: {certificado}")
         cert_wait_result = self._wait_for_image(f"{certificado}.png", "certificados", timeout=120)
         
         if cert_wait_result != RPAResult.SUCCESS:
             return cert_wait_result
             
-        cert_click_result = self._single_click_image(f"{certificado}.png", "certificados")
+        return self._single_click_image(f"{certificado}.png", "certificados")
         
-        if cert_click_result != RPAResult.SUCCESS:
-            return cert_click_result
+    def trocarPerfil(self, cnpj, first_time) -> RPAResult:
+        botao_entrar = self._wait_for_image("entrar.png", "botoes", timeout=5)
 
-        print("\nSelecionando o perfil...")
-        combo_result = self._single_click_image("combo_perfil.png", "comboboxes/perfil")
-        
-        if combo_result != RPAResult.SUCCESS:
-            return combo_result
-            
-        return self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
+        if botao_entrar != RPAResult.SUCCESS:
+            self._double_click_image("icone_trocar_perfil.png", "botoes")
 
-    def typeCNPJ(self, cnpj) -> RPAResult:
-        print(f"\nDigitando CNPJ: {cnpj}...")
+        self._selecionar_certificado()
+
+        if first_time:
+            self._single_click_image("combo_perfil_contribuinte.png", "comboboxes/perfil")
+            self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
+        else:
+            self._single_click_image("combo_perfil_procurador.png", "comboboxes/perfil")
+            self._double_click_image("opcao_receita_federal.png", "comboboxes/perfil")
+            time.sleep(1)
+            self._single_click_image("combo_perfil_receita_federal.png", "comboboxes/perfil")
+            self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
+
         self._selectOption("combo_tipo_doc.png", "opcao_cnpj.png", "comboboxes/tipo_doc")
         self._single_click_image("cnpj_input.png", "inputs")
         
         PyAutoGui.write(cnpj, interval=0.1)
         time.sleep(1)
 
-        print("\nEntrando no sistema...")
-        return self._single_click_image("entrar.png", "botoes")
+        # Tenta encontrar primeiro o botão "entrar"
+        botao_entrar = self._wait_for_image("entrar.png", "botoes", timeout=5)
+
+        if botao_entrar == RPAResult.SUCCESS:
+            return self._single_click_image("entrar.png", "botoes")
+        
+        # Se não encontrou "entrar", tenta encontrar "trocar_perfil"
+        botao_trocar_perfil = self._wait_for_image("trocar_perfil.png", "botoes", timeout=5)
+        
+        if botao_trocar_perfil == RPAResult.SUCCESS:
+            return self._single_click_image("trocar_perfil.png", "botoes")
+        
+        # Se nenhuma das duas imagens foi encontrada, retorna erro
+        print("✗ Nenhuma das imagens foi encontrada: entrar.png ou trocar_perfil.png")
+        return RPAResult.IMAGE_NOT_FOUND
     
     def _searchSPED(self) -> RPAResult:
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")

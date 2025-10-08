@@ -1,6 +1,6 @@
 {
   "certificado": "ANA JAWES DE MORAIS OLIVEIRA",
   "arquivos": {
-    "caminho": "C:/tmp/abax/{{tipo}}/{{data_inicial}} a {{data_final}}/{{nome}}"
+    "caminho": "C:/tmp/CLIENTES/{{nome}}/01. Diagnóstico Fiscal_{{data_inicial}}_{{data_final}}/1.2 Documentos Recebidos/{{tipo}}"
   }
 }
