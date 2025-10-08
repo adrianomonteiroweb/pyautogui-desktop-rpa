@@ -1,6 +1,6 @@
 {
   "certificado": "ANA JAWES DE MORAIS OLIVEIRA",
   "arquivos": {
-    "caminho": "C:/tmp/abax/{{cnpj}}"
+    "caminho": "C:/tmp/abax/{{_dia}}{{_mes}}{{_ano}}_{{cnpj}}"
   }
 }

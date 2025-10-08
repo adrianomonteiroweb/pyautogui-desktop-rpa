@@ -4,6 +4,7 @@ import getpass
 import re
 from pathlib import Path
 from typing import List, Optional, Dict, Any
+from datetime import datetime
 from json_manager import JSONManager
 
 
@@ -115,6 +116,15 @@ class FilesManager:
         Returns:
             Dict com informações sobre a operação (arquivos movidos, erros, etc.)
         """
+        # Adiciona informações de data atual ao dicionário data
+        if data is None:
+            data = {}
+        
+        now = datetime.now()
+        data['_dia'] = now.day
+        data['_mes'] = now.month
+        data['_ano'] = now.year
+        
         source_path = custom_source or self.source_folder
         destination_path = custom_destination or self._get_destination_path(data)
         
@@ -195,6 +205,15 @@ class FilesManager:
         Returns:
             Dict com informações sobre a operação (arquivos copiados, erros, etc.)
         """
+        # Adiciona informações de data atual ao dicionário empresa
+        if empresa is None:
+            empresa = {}
+        
+        now = datetime.now()
+        empresa['_dia'] = now.day
+        empresa['_mes'] = now.month
+        empresa['_ano'] = now.year
+        
         source_path = custom_source or self.source_folder
         destination_path = custom_destination or self._get_destination_path(empresa)
         
@@ -309,6 +328,15 @@ class FilesManager:
         Returns:
             Caminho de destino processado com as variáveis substituídas
         """
+        # Adiciona informações de data atual ao dicionário empresa
+        if empresa is None:
+            empresa = {}
+        
+        now = datetime.now()
+        empresa['_dia'] = now.day
+        empresa['_mes'] = now.month
+        empresa['_ano'] = now.year
+        
         return self._get_destination_path(empresa)
     
     def get_info(self, empresa: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -323,7 +351,12 @@ class FilesManager:
         """
         try:
             destination_path_template = self._get_destination_path()
-            if empresa:
+            if empresa is not None:
+                # Adiciona informações de data atual ao dicionário empresa
+                now = datetime.now()
+                empresa['_dia'] = now.day
+                empresa['_mes'] = now.month
+                empresa['_ano'] = now.year
                 destination_path_rendered = self._get_destination_path(empresa)
             else:
                 destination_path_rendered = destination_path_template
@@ -338,7 +371,7 @@ class FilesManager:
             "source_exists": os.path.exists(self.source_folder)
         }
         
-        if empresa:
+        if empresa is not None:
             info["destination_folder_rendered"] = destination_path_rendered
             info["empresa_data"] = empresa
         
@@ -367,10 +400,15 @@ if __name__ == "__main__":
     for key, value in info_with_empresa.items():
         print(f"  {key}: {value}")
     
-    # Exemplo de renderização de caminho
+    # Exemplo de renderização de caminho (com variáveis de data adicionadas automaticamente)
     print(f"\nCaminho renderizado para CNPJ {empresa_exemplo['cnpj']}:")
-    rendered_path = files_manager.get_rendered_destination_path(empresa_exemplo)
+    rendered_path = files_manager.get_rendered_destination_path(empresa_exemplo.copy())
     print(f"  {rendered_path}")
+    print(f"\nVariáveis de data disponíveis para template:")
+    now = datetime.now()
+    print(f"  _dia: {now.day}")
+    print(f"  _mes: {now.month}")
+    print(f"  _ano: {now.year}")
     
     # Lista arquivos na pasta de origem
     print("\nListando arquivos na pasta de origem:")
