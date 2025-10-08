@@ -345,8 +345,21 @@ class RPA:
         PyAutoGui.write(end_date, interval=0.1)
         PyAutoGui.press("Enter")
 
-        return self._single_click_image("pesquisar.png", "botoes")
-    
+        self._single_click_image("pesquisar.png", "botoes")
+
+        return self._dispatch_message_if_exists()
+        
+    def _dispatch_message_if_exists(self) -> None:
+        time.sleep(2)
+        result = self._wait_for_image("modal_sem_resultados.png", "modais", timeout=10)
+
+        if result == RPAResult.SUCCESS:
+            print("⚠ Nenhum arquivo foi encontrado para o critério de pesquisa solicitado.")
+            time.sleep(1)
+            return PyAutoGui.press("Enter")
+        else:
+            return RPAResult.SUCCESS
+        
     def _searchSPEDFiscal(self) -> RPAResult:
         print("\nPesquisando arquivos de SPED Fiscal...")
         self._double_click_image("lupa.png", "botoes")
@@ -371,7 +384,9 @@ class RPA:
         PyAutoGui.press("Tab")
         PyAutoGui.press("Space")
 
-        return self._single_click_image("pesquisar.png", "botoes")
+        self._single_click_image("pesquisar.png", "botoes")
+
+        return self._dispatch_message_if_exists()
     
     def _searchSPEDContabil(self) -> RPAResult:
         print("\nPesquisando arquivos de SPED Contábil...")
@@ -391,12 +406,10 @@ class RPA:
         PyAutoGui.write(end_date, interval=0.1)
         PyAutoGui.press("Enter")
 
-        return self._single_click_image("pesquisar.png", "botoes")
-        
-    def _searchSPEDECF(self) -> RPAResult:
-        print("\nPesquisando arquivos de SPED ECF...")
-        
+        self._single_click_image("pesquisar.png", "botoes")
 
+        return self._dispatch_message_if_exists()
+        
     def search(self, tipo) -> RPAResult:
         if tipo == "sped_contribuicoes":
             print("\nPesquisando arquivos de SPED Contribuições...")

@@ -39,6 +39,7 @@ def main():
                         print(f"❌ Falha na seleção da empresa: {empresa_result.value if empresa_result else 'Resultado nulo'}")
                         return
                     
+                    print("Buscando...")
                     search_result = rpa.search(tipo=key[0])
                     
                     if search_result != RPAResult.SUCCESS:
