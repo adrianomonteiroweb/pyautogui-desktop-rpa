@@ -313,11 +313,7 @@ class RPA:
         print("\nEntrando no sistema...")
         return self._single_click_image("entrar.png", "botoes")
     
-    def _searchSPEDContribuicoes(self) -> RPAResult:
-        print("\nPesquisando arquivos de SPED Contribuições...")
-        self._double_click_image("lupa.png", "botoes")
-
-        self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
+    def _searchSPED(self) -> RPAResult:
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
         self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
 
@@ -336,14 +332,49 @@ class RPA:
     
     def _searchSPEDFiscal(self) -> RPAResult:
         print("\nPesquisando arquivos de SPED Fiscal...")
-        time.sleep(10)
-        # TODO: Implementar a busca por SPED Fiscal - por enquanto retorna sucesso
-        return RPAResult.SUCCESS
+        self._double_click_image("lupa.png", "botoes")
+       
+        self._selectOption("combo_sistema.png", "opcao_sped_fiscal.png", "comboboxes/sistema")
+        self._selectOption("combo_arquivo.png", "opcao_escrituracao_fiscal_digital.png", "comboboxes/arquivo")
+
+        self._single_click_image("checkbox.png", "checkboxes")
+
+        PyAutoGui.press("Tab", presses=2, interval=0.2)
+
+        json_manager = JSONManager()
+        period = json_manager.get_params().get("period")
+        start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
+        end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
+
+        print(f"Período: {start_date} a {end_date}")
+        PyAutoGui.write(start_date, interval=0.1)
+        PyAutoGui.press("Tab")
+        PyAutoGui.write(end_date, interval=0.1)
+
+        PyAutoGui.press("Tab")
+        PyAutoGui.press("Space")
+
+        return self._single_click_image("pesquisar.png", "botoes")
+        
+    def _searchSPEDECF(self) -> RPAResult:
+        print("\nPesquisando arquivos de SPED ECF...")
         
 
     def search(self, tipo) -> RPAResult:
         if tipo == "sped_contribuicoes":
-            return self._searchSPEDContribuicoes()
+            print("\nPesquisando arquivos de SPED Contribuições...")
+            self._double_click_image("lupa.png", "botoes")
+
+            self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
+
+            return self._searchSPED()
+        elif tipo == "sped_ecf":
+            print("\nPesquisando arquivos de SPED ECF...")
+            self._double_click_image("lupa.png", "botoes")
+
+            self._selectOption("combo_sistema.png", "opcao_sped_ecf.png", "comboboxes/sistema")
+
+            return self._searchSPED()
         elif tipo == "sped_fiscal":
             return self._searchSPEDFiscal()
         else:
@@ -354,8 +385,6 @@ class RPA:
         time.sleep(3)
         print("\nSolicitando arquivos...")
         self._single_click_image("checkbox_todos.png", "checkboxes")
-        time.sleep(1)
-        self._single_click_image("coluna_data_inicio.png", "tabelas")
         time.sleep(1)
         self._single_click_image("solicitar_arquivos.png", "botoes")
 

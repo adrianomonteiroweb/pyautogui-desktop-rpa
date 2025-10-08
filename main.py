@@ -44,7 +44,7 @@ def main():
                     return
                 
                 search_result = rpa.search(tipo=key[0])
-
+                time.sleep(30)
                 if search_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na pesquisa: {search_result.value if search_result else 'Resultado nulo'}")
                     return
@@ -71,6 +71,7 @@ def main():
 
                 empresa['data_inicial'] = start_date
                 empresa['data_final'] = end_date
+                empresa['tipo'] = key[0]
 
                 move_result = files_manager.move_files(data=empresa)
                 
