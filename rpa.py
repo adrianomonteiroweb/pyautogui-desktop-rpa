@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from json_manager import JSONManager
+from date_formatter import DateFormatter
 
 
 class RPAResult(Enum):
@@ -212,8 +213,7 @@ class RPA:
 
     def typeCNPJ(self, cnpj) -> RPAResult:
         print(f"\nDigitando CNPJ: {cnpj}...")
-        self._single_click_image("combo_tipo_doc.png", "comboboxes/tipo_doc")
-        self._single_click_image("opcao_cnpj.png", "comboboxes/tipo_doc")
+        self._selectOption("combo_tipo_doc.png", "opcao_cnpj.png", "comboboxes/tipo_doc")
         self._single_click_image("cnpj_input.png", "inputs")
         
         PyAutoGui.write(cnpj, interval=0.1)
@@ -222,15 +222,20 @@ class RPA:
         print("\nEntrando no sistema...")
         return self._single_click_image("entrar.png", "botoes")
     
-    def search(self, start_date: str = "01012020", end_date: str = "31122024") -> RPAResult:
+    def search(self) -> RPAResult:
         print("\nPesquisando arquivos...")
-        time.sleep(1)
         self._single_click_image("lupa.png", "botoes")
 
         self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
         self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
 
+        json_manager = JSONManager()
+        period = json_manager.get_params().get("period")
+        start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
+        end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
+
+        print(f"Período: {start_date} a {end_date}")
         PyAutoGui.write(start_date, interval=0.1)
         PyAutoGui.press("Tab")
         PyAutoGui.write(end_date, interval=0.1)
