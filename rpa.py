@@ -355,6 +355,26 @@ class RPA:
         PyAutoGui.press("Space")
 
         return self._single_click_image("pesquisar.png", "botoes")
+    
+    def _searchSPEDContabil(self) -> RPAResult:
+        print("\nPesquisando arquivos de SPED Contábil...")
+        self._double_click_image("lupa.png", "botoes")
+       
+        self._selectOption("combo_sistema.png", "opcao_sped_contabil.png", "comboboxes/sistema")
+        self._selectOption("combo_arquivo.png", "opcao_escrituracao_contabil_digital.png", "comboboxes/arquivo")
+
+        json_manager = JSONManager()
+        period = json_manager.get_params().get("period")
+        start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
+        end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
+
+        print(f"Período: {start_date} a {end_date}")
+        PyAutoGui.write(start_date, interval=0.1)
+        PyAutoGui.press("Tab")
+        PyAutoGui.write(end_date, interval=0.1)
+        PyAutoGui.press("Enter")
+
+        return self._single_click_image("pesquisar.png", "botoes")
         
     def _searchSPEDECF(self) -> RPAResult:
         print("\nPesquisando arquivos de SPED ECF...")
@@ -377,6 +397,8 @@ class RPA:
             return self._searchSPED()
         elif tipo == "sped_fiscal":
             return self._searchSPEDFiscal()
+        elif tipo == "sped_contabil":
+            return self._searchSPEDContabil()
         else:
             print(f"⚠ Tipo de pesquisa não reconhecido: {tipo}")
             return RPAResult.IMAGE_NOT_FOUND
