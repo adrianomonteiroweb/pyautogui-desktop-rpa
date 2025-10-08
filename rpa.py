@@ -227,9 +227,9 @@ class RPA:
         time.sleep(1)
         self._single_click_image("lupa.png", "botoes")
 
-        self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png")
-        self._selectOption("combo_arquivo.png", "opcao_escrituracao.png")
-        self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png")
+        self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
+        self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
+        self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
 
         PyAutoGui.write(start_date, interval=0.1)
         PyAutoGui.press("Tab")
@@ -238,10 +238,10 @@ class RPA:
 
         return self._single_click_image("pesquisar.png", "botoes")
 
-    def _selectOption(self, combo_image: str, option_image: str, attempts: int = 2) -> RPAResult:
+    def _selectOption(self, combo_image: str, option_image: str, alias: str, attempts: int = 2) -> RPAResult:
         for attempt in range(attempts):
             
-            combo_result = self._wait_for_image(combo_image, timeout=10)
+            combo_result = self._wait_for_image(combo_image, alias, timeout=10)
 
             if combo_result != RPAResult.SUCCESS:
                 if attempt < attempts - 1:
@@ -250,15 +250,15 @@ class RPA:
                 else:
                     return combo_result
             
-            self._single_click_image(combo_image)
+            self._single_click_image(combo_image, alias)
             
-            option_result = self._wait_for_image(option_image, timeout=10)
+            option_result = self._wait_for_image(option_image, alias, timeout=10)
 
             if option_result == RPAResult.SUCCESS:
-                click_result = self._single_click_image(option_image)
+                click_result = self._single_click_image(option_image, alias)
                 
                 if click_result == RPAResult.SUCCESS:
-                    return RPAResult.SUCCESS
+                    return RPAResult.SUCCESS    
             
             if attempt < attempts - 1:
                 time.sleep(1)
