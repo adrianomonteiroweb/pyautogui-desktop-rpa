@@ -1,8 +1,8 @@
 {
   "types": {
-    "sped_contribuicoes": false,
+    "sped_contribuicoes": true,
     "sped_fiscal": false,
-    "sped_ecf": true,
+    "sped_ecf": false,
     "sped_contabil": false
   },
   "period": { "start_date": "2024-01-01", "end_date": "2024-12-31" },

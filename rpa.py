@@ -265,11 +265,12 @@ class RPA:
         close_buttons = [
             ("sair.png", "botoes"),
             ("fechar.png", "botoes"),
-            ("fechar2.png", "botoes")
+            ("fechar2.png", "botoes"),
         ]
         
         for button_file, button_alias in close_buttons:
             result = self._single_click_image(button_file, button_alias, silent=True)
+            
             if result == RPAResult.SUCCESS:
                 print(f"✅ ReceitanetBX fechado usando: {button_file}")
                 return
@@ -350,13 +351,14 @@ class RPA:
         return self._dispatch_message_if_exists()
         
     def _dispatch_message_if_exists(self) -> RPAResult:
-        time.sleep(2)
-        result = self._wait_for_image("modal_sem_resultados.png", "modais", timeout=10)
+        time.sleep(5)
+        result = self._wait_for_image("modal_sem_resultados.png", "modais", timeout=1)
 
         if result == RPAResult.SUCCESS:
             message = "⚠ Nenhum arquivo foi encontrado para o critério de pesquisa solicitado."
             print(message)
             time.sleep(1)
+            self._double_click_image("ok.png", "botoes", silent=True)
             PyAutoGui.press("Enter")
             # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
             raise Exception("Unfinish: " + message)
@@ -368,6 +370,7 @@ class RPA:
                 message = "⚠ Nenhum arquivo encontrado correspondente a busca."
                 print(message)
                 time.sleep(1)
+                self._double_click_image("ok.png", "botoes", silent=True)
                 PyAutoGui.press("Enter")
                 # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
                 raise Exception("Unfinish: " + message)
