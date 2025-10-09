@@ -468,8 +468,6 @@ class RPA:
             
             # Processa cada data na lista
             for i, date in enumerate(range_dates):
-                print(f"\n📅 Processando data {i+1}/{len(range_dates)}: {date}")
-                
                 # Usa EasyOCR para encontrar e clicar na data
                 success = ocr_manager.click_best_date_match(date)
                 
@@ -480,8 +478,7 @@ class RPA:
                     
                 # Aguarda 3 segundos antes da próxima data (exceto na última)
                 if i < len(range_dates) - 1:
-                    print("⏰ Aguardando 3 segundos antes da próxima data...")
-                    time.sleep(3)
+                    time.sleep(1)
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
             time.sleep(1)
