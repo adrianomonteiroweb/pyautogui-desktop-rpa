@@ -349,14 +349,17 @@ class RPA:
 
         return self._dispatch_message_if_exists()
         
-    def _dispatch_message_if_exists(self) -> None:
+    def _dispatch_message_if_exists(self) -> RPAResult:
         time.sleep(2)
         result = self._wait_for_image("modal_sem_resultados.png", "modais", timeout=10)
 
         if result == RPAResult.SUCCESS:
-            print("⚠ Nenhum arquivo foi encontrado para o critério de pesquisa solicitado.")
+            message = "⚠ Nenhum arquivo foi encontrado para o critério de pesquisa solicitado."
+            print(message)
             time.sleep(1)
-            return PyAutoGui.press("Enter")
+            PyAutoGui.press("Enter")
+            # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
+            raise Exception("Unfinish: " + message)
         else:
             return RPAResult.SUCCESS
         
