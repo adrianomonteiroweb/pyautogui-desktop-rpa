@@ -7,6 +7,7 @@ from enum import Enum
 
 from json_manager import JSONManager
 from date_formatter import DateFormatter
+from easyocr_manager import EasyOCRManager
 
 
 class RPAResult(Enum):
@@ -428,6 +429,9 @@ class RPA:
         return self._dispatch_message_if_exists()
         
     def search(self, tipo) -> RPAResult:
+        self._double_click_image("maximizar.png", "botoes")
+        time.sleep(2)
+
         if tipo == "sped_contribuicoes":
             print("\nPesquisando arquivos de SPED Contribuições...")
             self._double_click_image("lupa.png", "botoes")
@@ -450,11 +454,38 @@ class RPA:
             print(f"⚠ Tipo de pesquisa não reconhecido: {tipo}")
             return RPAResult.IMAGE_NOT_FOUND
 
-    def request_files(self) -> RPAResult:
+    def request_files(self, range_dates) -> RPAResult:
         time.sleep(3)
         print("\nSolicitando arquivos...")
-        self._single_click_image("checkbox_todos.png", "checkboxes")
-        time.sleep(1)
+        
+        if range_dates:
+            # Inicializa o EasyOCR Manager
+            ocr_manager = EasyOCRManager()
+            
+            # Clica na coluna de data início para ordenar
+            self._single_click_image("coluna_data_inicio.png", "tabelas")
+            time.sleep(1)
+            
+            # Processa cada data na lista
+            for i, date in enumerate(range_dates):
+                print(f"\n📅 Processando data {i+1}/{len(range_dates)}: {date}")
+                
+                # Usa EasyOCR para encontrar e clicar na data
+                success = ocr_manager.click_best_date_match(date)
+                
+                if success:
+                    self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
+                else:
+                    print(f"Não encontrado arquivo no período: {date}")
+                    
+                # Aguarda 3 segundos antes da próxima data (exceto na última)
+                if i < len(range_dates) - 1:
+                    print("⏰ Aguardando 3 segundos antes da próxima data...")
+                    time.sleep(3)
+        else:
+            self._single_click_image("checkbox_todos.png", "checkboxes")
+            time.sleep(1)
+
         self._single_click_image("solicitar_arquivos.png", "botoes")
 
         confirm_result = self._wait_for_image("modal_sucesso.png", "modais")

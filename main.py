@@ -117,14 +117,32 @@ def process_empresa(empresa, first_time):
         # Processa todos os tipos habilitados para esta empresa
         for tipo in tipos_habilitados:
             print(f"  📋 Processando tipo: {tipo}")
-            
+
             search_result = rpa.search(tipo=tipo)
 
             if search_result != RPAResult.SUCCESS:
                 print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
                 continue  # Continua com outros tipos
+
+            files_manager = FilesManager()
             
-            request_result = rpa.request_files()
+            period = json_manager.get_params().get("period")
+            # Convert ISO dates to DD/MM/YYYY format for generate_monthly_start_dates
+            start_date_iso = period["start_date"]  # e.g., "2025-01-01"
+            end_date_iso = period["end_date"]      # e.g., "2025-12-31"
+            
+            # Convert ISO to DD/MM/YYYY format for the date generator
+            from datetime import datetime
+            start_date_formatted = datetime.strptime(start_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
+            end_date_formatted = datetime.strptime(end_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
+
+            # range_dates só deve ser igual a ele mesmo se tipo for diferente de "sped_ecf"
+            if tipo != "sped_ecf":
+                range_dates = DateFormatter.generate_monthly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
+            else:
+                range_dates = None  # ou outro valor apropriado para sped_ecf
+
+            request_result = rpa.request_files(range_dates=range_dates)
 
             if request_result != RPAResult.SUCCESS:
                 print(f"❌ Falha na solicitação dos arquivos para tipo {tipo}: {request_result.value if request_result else 'Resultado nulo'}")
@@ -134,6 +152,7 @@ def process_empresa(empresa, first_time):
                     continue
                 raise Exception(f"Falha na solicitação dos arquivos: {request_result.value}")
             
+            
             downloads_result = rpa.download_files()
 
             if downloads_result != RPAResult.SUCCESS:
@@ -142,15 +161,13 @@ def process_empresa(empresa, first_time):
             
             print(f"  📁 Movendo arquivos do tipo {tipo}...")
 
-            files_manager = FilesManager()
-            
-            period = json_manager.get_params().get("period")
-            start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
-            end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
+            # Convert dates to DDMMYYYY format for file manager
+            start_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
+            end_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
             
             empresa_data = empresa.copy()
-            empresa_data['data_inicial'] = start_date
-            empresa_data['data_final'] = end_date
+            empresa_data['data_inicial'] = start_date_ddmmyyyy
+            empresa_data['data_final'] = end_date_ddmmyyyy
             empresa_data['tipo'] = tipo
             
             move_result = files_manager.move_files(data=empresa_data)
