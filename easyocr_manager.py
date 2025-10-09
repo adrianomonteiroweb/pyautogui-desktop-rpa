@@ -7,7 +7,16 @@ Sempre clica na última ocorrência visual (ordenada por posição Y, depois X)
 import easyocr
 import pyautogui
 import os
+import warnings
+import sys
+import io
 from typing import List, Tuple, Optional, Dict, Any
+
+# Suprime o aviso específico do pin_memory do PyTorch
+warnings.filterwarnings("ignore", message=".*pin_memory.*", category=UserWarning)
+# Suprime a mensagem sobre CUDA/MPS não disponível
+warnings.filterwarnings("ignore", message=".*CUDA.*defaulting to CPU.*")
+warnings.filterwarnings("ignore", message=".*Neither CUDA nor MPS.*")
 
 
 class EasyOCRManager:
@@ -23,7 +32,16 @@ class EasyOCRManager:
         Args:
             languages: Lista de idiomas para o OCR (padrão: ['pt'])
         """
-        self.reader = easyocr.Reader(languages)
+        # Suprime saídas durante a inicialização do EasyOCR
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+        try:
+            self.reader = easyocr.Reader(languages)
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
         self.screenshot_path = r"C:\Users\adria\Documents\hobots\abax\screenshot.png"
         
         # Cria o diretório se não existir
