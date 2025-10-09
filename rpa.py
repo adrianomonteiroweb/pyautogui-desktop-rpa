@@ -465,6 +465,8 @@ class RPA:
             # Clica na coluna de data início para ordenar
             self._single_click_image("coluna_data_inicio.png", "tabelas")
             time.sleep(1)
+            self._single_click_image("coluna_transmissao.png", "tabelas")
+            time.sleep(1)
             
             # Processa cada data na lista
             for i, date in enumerate(range_dates):
