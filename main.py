@@ -185,8 +185,6 @@ def process_empresa(empresa, first_time):
         time.sleep(2)
 
 def main():
-    print("📋 Carregando empresas do arquivo CSV...")
-
     empresas = ler_arquivo_csv("empresas")
     
     if not empresas:

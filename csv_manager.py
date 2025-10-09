@@ -46,9 +46,6 @@ def ler_arquivo_csv(nome_arquivo: str, mostrar_info: bool = True) -> Optional[Di
                     linha_limpa[nome_coluna] = valor_limpo
                 dados.append(linha_limpa)
         
-        if mostrar_info:
-            print(f"Arquivo '{nome_arquivo}' lido com sucesso.")
-        
         return dados
     
     except FileNotFoundError:

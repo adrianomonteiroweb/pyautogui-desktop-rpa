@@ -137,13 +137,8 @@ class RPA:
             return RPAResult.CLICK_FAILED
     
     def _wait_with_countdown(self, seconds: int, message: str = "Iniciando...") -> None:
-        print(f"{message} em {seconds} segundos...")
-
         for i in range(seconds, 0, -1):
-            print(f"Aguardando: {i}")
             time.sleep(1)
-
-        print("Iniciando...")
 
     def _wait_for_image(self, image_filename: str, alias: str = "", timeout: int = 30, check_interval: float = 1.0) -> RPAResult:
         image_path = self._get_image_path(alias, image_filename)
@@ -163,7 +158,6 @@ class RPA:
                 if elapsed_time > timeout / 2 and not tried_lower_confidence and self.config.confidence > 0.6:
                     confidence_to_use = 0.6
                     tried_lower_confidence = True
-                    print(f"⚠ Tentando com menor precisão para {image_filename}...")
                 
                 location = PyAutoGui.locateOnScreen(image_path, confidence=confidence_to_use)
                 
@@ -171,7 +165,6 @@ class RPA:
                     PyAutoGui.center(location)
                     return RPAResult.SUCCESS
                 
-                print(f"⏳ Aguardando... ({elapsed_time:.1f}s/{timeout}s)")
                 time.sleep(check_interval)
                 elapsed_time += check_interval
                 
@@ -202,7 +195,7 @@ class RPA:
 
     def _double_click_image(self, icon_filename: str = "icon.png", alias: str = "", silent: bool = False) -> RPAResult:
         if not silent:
-            self._wait_with_countdown(self.config.startup_delay, "Procurando ícone no desktop")
+            self._wait_with_countdown(self.config.startup_delay)
         
         image_path = self._get_image_path(alias, icon_filename)
         
@@ -341,7 +334,7 @@ class RPA:
         start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
         end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
 
-        print(f"Período: {start_date} a {end_date}")
+        print(f"Buscando arquivos no período entre {start_date} e {end_date}...")
         PyAutoGui.write(start_date, interval=0.1)
         PyAutoGui.press("Tab")
         PyAutoGui.write(end_date, interval=0.1)
@@ -455,8 +448,7 @@ class RPA:
             return RPAResult.IMAGE_NOT_FOUND
 
     def request_files(self, range_dates) -> RPAResult:
-        time.sleep(3)
-        print("\nSolicitando arquivos...")
+        print("\nSelecionando arquivos...")
         
         if range_dates:
             # Inicializa o EasyOCR Manager
