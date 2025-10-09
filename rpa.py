@@ -278,10 +278,6 @@ class RPA:
         certificado = settings.get("certificado", "cert.png")
         
         print(f"Selecionando certificado: {certificado}")
-        cert_wait_result = self._wait_for_image(f"{certificado}.png", "certificados", timeout=120)
-        
-        if cert_wait_result != RPAResult.SUCCESS:
-            return cert_wait_result
             
         return self._single_click_image(f"{certificado}.png", "certificados")
         
@@ -307,7 +303,6 @@ class RPA:
         self._single_click_image("cnpj_input.png", "inputs")
         
         PyAutoGui.write(cnpj, interval=0.1)
-        time.sleep(1)
 
         # Tenta encontrar primeiro o botão "entrar"
         botao_entrar = self._wait_for_image("entrar.png", "botoes", timeout=5)
