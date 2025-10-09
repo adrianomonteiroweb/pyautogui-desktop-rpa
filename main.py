@@ -136,11 +136,11 @@ def process_empresa(empresa, first_time):
             start_date_formatted = datetime.strptime(start_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
             end_date_formatted = datetime.strptime(end_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
 
-            # range_dates só deve ser igual a ele mesmo se tipo for diferente de "sped_ecf"
-            if tipo != "sped_ecf":
+            # range_dates só deve ser igual a ele mesmo se tipo for diferente de "sped_fiscal"
+            if tipo != "sped_fiscal":
                 range_dates = DateFormatter.generate_monthly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
             else:
-                range_dates = None  # ou outro valor apropriado para sped_ecf
+                range_dates = None
 
             request_result = rpa.request_files(range_dates=range_dates)
 

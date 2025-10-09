@@ -119,8 +119,9 @@ class EasyOCRManager:
         target_clean = self._normalize_text(target)
         text_clean = self._normalize_text(text)
         
-        # PRIORIDADE 1: Busca pelo padrão completo DD/MM/YYYY00:00:00
-        target_with_time = f"{target_clean}00:00:00"
+        # PRIORIDADE 1: Busca pelo padrão completo DD/MM/YYYY 00:00:00
+        target_with_time = f"{target_clean} 00:00:00"
+
         if target_with_time in text_clean:
             return True
         
@@ -198,8 +199,6 @@ class EasyOCRManager:
         """
         try:
             target_with_time = f"{target_date} 00:00:00"
-            print(f"🎯 [INTELIGENTE] Buscando melhor correspondência: {target_date}")
-            print(f"🔍 [OTIMIZADO] Procurando padrão: {target_with_time}")
             
             occurrences = self.find_date_occurrences(target_date)
             
@@ -208,40 +207,14 @@ class EasyOCRManager:
                 last_match = occurrences['last_exact']
                 bbox, text, confidence, x_centro, y_centro = last_match
                 
-                print(f"✅ Padrão encontrado: '{text}' (confiança: {confidence:.2f})")
-                print(f"🖱️ Clicando na ÚLTIMA ocorrência visual: x={x_centro:.0f}, y={y_centro:.0f}")
-                
-                if occurrences['total_exact'] > 1:
-                    print(f"📊 Total de {occurrences['total_exact']} ocorrências - clicando na última")
-                    self._debug_show_visual_order(occurrences['exact_matches'])
-                
                 pyautogui.click(x_centro, y_centro)
-                print("✅ Sucesso com método otimizado!")
                 return True
             else:
-                print(f"❌ Padrão '{target_with_time}' não encontrado")
                 return False
                 
         except Exception as e:
             print(f"❌ Erro no método otimizado: {e}")
             return False    # =============================================================================
-    # MÉTODOS AUXILIARES E DEBUG
-    # =============================================================================
-    
-    def _debug_show_visual_order(self, matches: List[Tuple]) -> None:
-        """
-        Mostra a ordem visual das correspondências (para debug)
-        
-        Args:
-            matches: Lista de matches ordenados visualmente
-        """
-        print(f"📍 Ordem visual das correspondências:")
-        for i, (_, text, _, x, y) in enumerate(matches, 1):
-            marker = "👇 ÚLTIMA" if i == len(matches) else f"  {i}ª"
-            print(f"     {marker}: '{text}' em x={x:.0f}, y={y:.0f}")
-    
-
-
 
 # =============================================================================
 # CLASSE DE COMPATIBILIDADE (ALIAS)
