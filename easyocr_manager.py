@@ -2,6 +2,7 @@
 EasyOCR Manager - Versão Otimizada
 Sistema simplificado focado no método que funciona: busca por datas com padrão DD/MM/YYYY 00:00:00
 Sempre clica na última ocorrência visual (ordenada por posição Y, depois X)
+Implementa padrão Singleton para reutilizar a instância e evitar inicializações custosas
 """
 
 import easyocr
@@ -23,15 +24,31 @@ class EasyOCRManager:
     """
     Gerenciador otimizado para operações de OCR e interações com PyAutoGUI
     Focado no método que funciona: busca por datas DD/MM/YYYY 00:00:00 e clique na última ocorrência visual
+    Implementa padrão Singleton para reutilizar a instância e evitar inicializações custosas
     """
+    
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls, languages: List[str] = ['pt']):
+        """
+        Implementa padrão Singleton para reutilizar a instância
+        """
+        if cls._instance is None:
+            cls._instance = super(EasyOCRManager, cls).__new__(cls)
+        return cls._instance
     
     def __init__(self, languages: List[str] = ['pt']):
         """
-        Inicializa o leitor EasyOCR
+        Inicializa o leitor EasyOCR apenas uma vez (Singleton)
         
         Args:
             languages: Lista de idiomas para o OCR (padrão: ['pt'])
         """
+        # Evita reinicialização se já foi inicializado
+        if self._initialized:
+            return
+            
         # Suprime saídas durante a inicialização do EasyOCR
         old_stdout = sys.stdout
         old_stderr = sys.stderr
@@ -42,10 +59,14 @@ class EasyOCRManager:
         finally:
             sys.stdout = old_stdout
             sys.stderr = old_stderr
+        
         self.screenshot_path = r"C:\Users\adria\Documents\hobots\abax\screenshot.png"
         
         # Cria o diretório se não existir
         os.makedirs(os.path.dirname(self.screenshot_path), exist_ok=True)
+        
+        # Marca como inicializado
+        self._initialized = True
     
     # =============================================================================
     # MÉTODOS BÁSICOS DE OCR E SCREENSHOT
@@ -232,7 +253,7 @@ class EasyOCRManager:
                 
         except Exception as e:
             print(f"❌ Erro no método otimizado: {e}")
-            return False    # =============================================================================
+            return False
 
 # =============================================================================
 # CLASSE DE COMPATIBILIDADE (ALIAS)
@@ -254,7 +275,9 @@ class EasyOCR(EasyOCRManager):
     def find_text_coordinates(self, text_to_find: str) -> Optional[Tuple[float, float]]:
         """Método legado para compatibilidade"""
         occurrences = self.find_date_occurrences(text_to_find)
+
         if occurrences['last_exact']:
             _, _, _, x, y = occurrences['last_exact']
             return (x, y)
+        
         return None
