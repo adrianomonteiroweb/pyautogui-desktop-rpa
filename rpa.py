@@ -455,17 +455,20 @@ class RPA:
             self._single_click_image("coluna_transmissao.png", "tabelas")
             time.sleep(1)
             
-            # Processa cada data na lista
+            # Captura o screenshot UMA ÚNICA VEZ antes do loop
+            screenshot_path = ocr_manager.take_screenshot()
+            
+            # Processa cada data na lista usando o mesmo screenshot
             for i, date in enumerate(range_dates):
-                # Usa EasyOCR para encontrar e clicar na data
-                success = ocr_manager.click_best_date_match(date)
+                # Passa o screenshot já capturado para evitar nova captura
+                success = ocr_manager.click_best_date_match(date, screenshot_path)
                 
                 if success:
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
                     print(f"Não encontrado arquivo no período: {date}")
                     
-                # Aguarda 3 segundos antes da próxima data (exceto na última)
+                # Aguarda 1 segundo antes da próxima data (exceto na última)
                 if i < len(range_dates) - 1:
                     time.sleep(1)
         else:

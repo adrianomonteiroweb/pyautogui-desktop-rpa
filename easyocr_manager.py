@@ -180,18 +180,20 @@ class EasyOCRManager:
     # MÉTODOS DE BUSCA E ANÁLISE
     # =============================================================================
     
-    def find_date_occurrences(self, target_date: str) -> Dict[str, Any]:
+    def find_date_occurrences(self, target_date: str, screenshot_path: str = None) -> Dict[str, Any]:
         """
         Encontra todas as ocorrências de uma data na tela
         
         Args:
             target_date: Data alvo no formato "DD/MM/YYYY"
+            screenshot_path: Caminho para screenshot (opcional, captura novo se não fornecido)
             
         Returns:
             Dict com informações das ocorrências encontradas
         """
         try:
-            screenshot_path = self.take_screenshot()
+            if screenshot_path is None:
+                screenshot_path = self.take_screenshot()
             results = self.read_text_from_image(screenshot_path)
             
             exact_matches = []
@@ -225,13 +227,14 @@ class EasyOCRManager:
     # MÉTODOS DE CLIQUE OTIMIZADOS
     # =============================================================================
     
-    def click_best_date_match(self, target_date: str) -> bool:
+    def click_best_date_match(self, target_date: str, screenshot_path: str = None) -> bool:
         """
         Método otimizado que busca e clica em datas no formato DD/MM/YYYY 00:00:00
         Sempre clica na ÚLTIMA ocorrência visual (ordenada por Y, depois X)
         
         Args:
             target_date: Data alvo no formato "DD/MM/YYYY"
+            screenshot_path: Caminho para screenshot (opcional, captura novo se não fornecido)
             
         Returns:
             bool: True se encontrou e clicou, False caso contrário
@@ -239,7 +242,7 @@ class EasyOCRManager:
         try:
             target_with_time = f"{target_date} 00:00:00"
             
-            occurrences = self.find_date_occurrences(target_date)
+            occurrences = self.find_date_occurrences(target_date, screenshot_path)
             
             if occurrences['exact_matches']:
                 # Clica na última ocorrência visual
