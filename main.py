@@ -181,7 +181,7 @@ def main():
 
     text_formatter = TextFormatter()
 
-    empresas_filtradas = list(filter(lambda e: e['cnpj'] == text_formatter.getOnlyNumbers(cnpj), empresas))
+    empresas_filtradas = list(filter(lambda e: e['cnpj'] == text_formatter.getOnlyNumbers(cnpj), empresas)) or empresas
         
     print(f"✅ Encontradas {len(empresas_filtradas)} empresas.")
     

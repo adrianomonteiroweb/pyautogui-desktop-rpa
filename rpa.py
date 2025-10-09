@@ -361,7 +361,18 @@ class RPA:
             # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
             raise Exception("Unfinish: " + message)
         else:
-            return RPAResult.SUCCESS
+            # Verifica se existe o modal de nenhum arquivo encontrado
+            result_nenhum_arquivo = self._wait_for_image("modal_nenhum_arquivo_encontrado.png", "modais", timeout=10)
+            
+            if result_nenhum_arquivo == RPAResult.SUCCESS:
+                message = "⚠ Nenhum arquivo encontrado correspondente a busca."
+                print(message)
+                time.sleep(1)
+                PyAutoGui.press("Enter")
+                # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
+                raise Exception("Unfinish: " + message)
+            else:
+                return RPAResult.SUCCESS
         
     def _searchSPEDFiscal(self) -> RPAResult:
         print("\nPesquisando arquivos de SPED Fiscal...")
