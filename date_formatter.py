@@ -106,7 +106,7 @@ class DateFormatter:
     @staticmethod
     def generate_monthly_start_dates(start_date: str, end_date: str, format_type: str = "dd/mm/yyyy") -> list:
         """
-        Gera todas as datas iniciais de cada mês dentro do range especificado.
+        Gera um array com as datas iniciais dos meses de cada ano dentro do range especificado.
         
         Args:
             start_date (str): Data de início no formato DD/MM/YYYY (ex: "01/01/2023")
@@ -117,11 +117,14 @@ class DateFormatter:
                              - "iso": 2023-01-01
             
         Returns:
-            list: Lista com as datas iniciais de cada mês no formato especificado
+            list: Lista de arrays, onde cada array contém as datas iniciais dos meses de um ano
             
         Example:
             Input: start_date="01/01/2023", end_date="31/12/2024"
-            Output: ["01/01/2023", "01/02/2023", "01/03/2023", ..., "01/12/2024"]
+            Output: [
+                ["01/01/2023", "01/02/2023", "01/03/2023", ..., "01/12/2023"],
+                ["01/01/2024", "01/02/2024", "01/03/2024", ..., "01/12/2024"]
+            ]
             
         Raises:
             ValueError: Se as datas não estiverem no formato correto ou se start_date > end_date
@@ -135,30 +138,37 @@ class DateFormatter:
             if start_dt > end_dt:
                 raise ValueError(f"Data inicial ({start_date}) deve ser menor ou igual à data final ({end_date})")
             
-            monthly_dates = []
-            current_date = datetime(start_dt.year, start_dt.month, 1)  # Primeiro dia do mês inicial
+            yearly_monthly_dates = []
+            current_year = start_dt.year
             
-            # Gera as datas do primeiro dia de cada mês
-            while current_date <= end_dt:
-                # Formata conforme o tipo solicitado
-                if format_type.lower() == "dd/mm/yyyy":
-                    formatted_date = current_date.strftime("%d/%m/%Y")
-                elif format_type.lower() == "ddmmyyyy":
-                    formatted_date = current_date.strftime("%d%m%Y")
-                elif format_type.lower() == "iso":
-                    formatted_date = current_date.strftime("%Y-%m-%d")
-                else:
-                    raise ValueError(f"Formato não suportado: {format_type}. Suportados: 'dd/mm/yyyy', 'ddmmyyyy', 'iso'")
+            # Processa cada ano no período
+            while current_year <= end_dt.year:
+                year_dates = []
                 
-                monthly_dates.append(formatted_date)
+                # Determina o mês inicial e final para o ano atual
+                start_month = start_dt.month if current_year == start_dt.year else 1
+                end_month = end_dt.month if current_year == end_dt.year else 12
                 
-                # Avança para o próximo mês
-                if current_date.month == 12:
-                    current_date = datetime(current_date.year + 1, 1, 1)
-                else:
-                    current_date = datetime(current_date.year, current_date.month + 1, 1)
+                # Gera as datas do primeiro dia de cada mês do ano atual
+                for month in range(start_month, end_month + 1):
+                    current_date = datetime(current_year, month, 1)
+                    
+                    # Formata conforme o tipo solicitado
+                    if format_type.lower() == "dd/mm/yyyy":
+                        formatted_date = current_date.strftime("%d/%m/%Y")
+                    elif format_type.lower() == "ddmmyyyy":
+                        formatted_date = current_date.strftime("%d%m%Y")
+                    elif format_type.lower() == "iso":
+                        formatted_date = current_date.strftime("%Y-%m-%d")
+                    else:
+                        raise ValueError(f"Formato não suportado: {format_type}. Suportados: 'dd/mm/yyyy', 'ddmmyyyy', 'iso'")
+                    
+                    year_dates.append(formatted_date)
+                
+                yearly_monthly_dates.append(year_dates)
+                current_year += 1
             
-            return monthly_dates
+            return yearly_monthly_dates
             
         except ValueError as e:
             if "does not match format" in str(e):
@@ -228,22 +238,25 @@ if __name__ == "__main__":
     print(f"Validação de '01012025' como DDMMYYYY: {DateFormatter.validate_date_format('01012025', 'ddmmyyyy')}")
     
     # Teste do gerador de datas mensais
-    print(f"\n--- Teste do gerador de datas mensais ---")
+    print(f"\n--- Teste do gerador de datas mensais por ano ---")
     start = "01/01/2023"
     end = "31/12/2024"
-    monthly_dates = DateFormatter.generate_monthly_start_dates(start, end)
+    yearly_monthly_dates = DateFormatter.generate_monthly_start_dates(start, end)
     print(f"Range: {start} até {end}")
-    print(f"Datas geradas ({len(monthly_dates)} meses):")
-    for i, date in enumerate(monthly_dates[:6]):  # Mostra apenas os primeiros 6
-        print(f"  {i+1}: {date}")
-    if len(monthly_dates) > 6:
-        print(f"  ... e mais {len(monthly_dates) - 6} datas")
+    print(f"Anos processados: {len(yearly_monthly_dates)}")
+    for year_idx, year_dates in enumerate(yearly_monthly_dates):
+        year = 2023 + year_idx  # Calcula o ano baseado no índice
+        print(f"\n  Ano {year} ({len(year_dates)} meses):")
+        for i, date in enumerate(year_dates[:3]):  # Mostra apenas os primeiros 3
+            print(f"    {i+1}: {date}")
+        if len(year_dates) > 3:
+            print(f"    ... e mais {len(year_dates) - 3} datas")
     
     # Teste com diferentes formatos
     print(f"\nTeste com formato DDMMYYYY:")
-    monthly_ddmmyyyy = DateFormatter.generate_monthly_start_dates(start, end, "ddmmyyyy")
-    print(f"Primeiras 3 datas: {monthly_ddmmyyyy[:3]}")
+    yearly_ddmmyyyy = DateFormatter.generate_monthly_start_dates(start, end, "ddmmyyyy")
+    print(f"Ano 2023 - primeiras 3 datas: {yearly_ddmmyyyy[0][:3]}")
     
     print(f"\nTeste com formato ISO:")
-    monthly_iso = DateFormatter.generate_monthly_start_dates(start, end, "iso")
-    print(f"Primeiras 3 datas: {monthly_iso[:3]}")
+    yearly_iso = DateFormatter.generate_monthly_start_dates(start, end, "iso")
+    print(f"Ano 2023 - primeiras 3 datas: {yearly_iso[0][:3]}")

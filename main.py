@@ -142,40 +142,46 @@ def process_empresa(empresa, first_time):
             else:
                 range_dates = None
 
-            request_result = rpa.request_files(range_dates=range_dates)
 
-            if request_result != RPAResult.SUCCESS:
-                print(f"❌ Falha na solicitação dos arquivos para tipo {tipo}: {request_result.value if request_result else 'Resultado nulo'}")
-                # Se for um caso específico que deve pular, continue
-                if "arquivo não encontrado" in str(request_result.value).lower():
-                    print(f"  ⏭️ Nenhum arquivo encontrado para tipo {tipo} - continuando...")
-                    continue
-                raise Exception(f"Falha na solicitação dos arquivos: {request_result.value}")
-            
-            
-            downloads_result = rpa.download_files()
+                range_dates = [
+                    DateFormatter.generate_yearly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
+                ]
 
-            if downloads_result != RPAResult.SUCCESS:
-                print(f"❌ Falha no download dos arquivos para tipo {tipo}: {downloads_result.value if downloads_result else 'Resultado nulo'}")
-                raise Exception(f"Falha no download dos arquivos: {downloads_result.value}")
-            
-            print(f"  📁 Movendo arquivos do tipo {tipo}...")
+            for year_dates in range_dates:
+                request_result = rpa.request_files(range_dates=year_dates)
 
-            # Convert dates to DDMMYYYY format for file manager
-            start_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
-            end_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
-            
-            empresa_data = empresa.copy()
-            empresa_data['data_inicial'] = start_date_ddmmyyyy
-            empresa_data['data_final'] = end_date_ddmmyyyy
-            empresa_data['tipo'] = tipo
-            
-            move_result = files_manager.move_files(data=empresa_data)
-            
-            if move_result["success"]:
-                print(f"  ✅ {move_result['message']}")
-            else:
-                print(f"  ❌ Erro ao mover arquivos do tipo {tipo}: {move_result.get('error', 'Erro desconhecido')}")
+                if request_result != RPAResult.SUCCESS:
+                    print(f"❌ Falha na solicitação dos arquivos para tipo {tipo}: {request_result.value if request_result else 'Resultado nulo'}")
+                    # Se for um caso específico que deve pular, continue
+                    if "arquivo não encontrado" in str(request_result.value).lower():
+                        print(f"  ⏭️ Nenhum arquivo encontrado para tipo {tipo} - continuando...")
+                        continue
+                    raise Exception(f"Falha na solicitação dos arquivos: {request_result.value}")
+                
+                
+                downloads_result = rpa.download_files()
+
+                if downloads_result != RPAResult.SUCCESS:
+                    print(f"❌ Falha no download dos arquivos para tipo {tipo}: {downloads_result.value if downloads_result else 'Resultado nulo'}")
+                    raise Exception(f"Falha no download dos arquivos: {downloads_result.value}")
+                
+                print(f"  📁 Movendo arquivos do tipo {tipo}...")
+
+                # Convert dates to DDMMYYYY format for file manager
+                start_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
+                end_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
+                
+                empresa_data = empresa.copy()
+                empresa_data['data_inicial'] = start_date_ddmmyyyy
+                empresa_data['data_final'] = end_date_ddmmyyyy
+                empresa_data['tipo'] = tipo
+                
+                move_result = files_manager.move_files(data=empresa_data)
+                
+                if move_result["success"]:
+                    print(f"  ✅ {move_result['message']}")
+                else:
+                    print(f"  ❌ Erro ao mover arquivos do tipo {tipo}: {move_result.get('error', 'Erro desconhecido')}")
         
         print("\n🎉 Automação concluída com sucesso!")
         return "Success"
