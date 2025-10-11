@@ -118,12 +118,6 @@ def process_empresa(empresa, first_time):
         for tipo in tipos_habilitados:
             print(f"  📋 Processando tipo: {tipo}")
 
-            search_result = rpa.search(tipo=tipo)
-
-            if search_result != RPAResult.SUCCESS:
-                print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
-                continue  # Continua com outros tipos
-
             files_manager = FilesManager()
             
             period = json_manager.get_params().get("period")
@@ -147,7 +141,15 @@ def process_empresa(empresa, first_time):
                     DateFormatter.generate_yearly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
                 ]
 
+
+
             for year_dates in range_dates:
+                search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=year_dates[year_dates.__len__() - 1])
+
+                if search_result != RPAResult.SUCCESS:
+                    print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
+                    continue  # Continua com outros tipos
+
                 request_result = rpa.request_files(range_dates=year_dates)
 
                 if request_result != RPAResult.SUCCESS:

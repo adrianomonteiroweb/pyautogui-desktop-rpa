@@ -319,15 +319,10 @@ class RPA:
         # Se nenhuma das duas imagens foi encontrada, retorna erro
         print("✗ Nenhuma das imagens foi encontrada: entrar.png ou trocar_perfil.png")
         return RPAResult.IMAGE_NOT_FOUND
-    
-    def _searchSPED(self) -> RPAResult:
+
+    def _searchSPED(self, start_date, end_date) -> RPAResult:
         self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
         self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
-
-        json_manager = JSONManager()
-        period = json_manager.get_params().get("period")
-        start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
-        end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
 
         print(f"Buscando arquivos no período entre {start_date} e {end_date}...")
         PyAutoGui.write(start_date, interval=0.1)
@@ -393,18 +388,13 @@ class RPA:
         self._single_click_image("pesquisar.png", "botoes")
 
         return self._dispatch_message_if_exists()
-    
-    def _searchSPEDContabil(self) -> RPAResult:
+
+    def _searchSPEDContabil(self, start_date, end_date) -> RPAResult:
         print("\nPesquisando arquivos de SPED Contábil...")
         self._double_click_image("lupa.png", "botoes")
        
         self._selectOption("combo_sistema.png", "opcao_sped_contabil.png", "comboboxes/sistema")
         self._selectOption("combo_arquivo.png", "opcao_escrituracao_contabil_digital.png", "comboboxes/arquivo")
-
-        json_manager = JSONManager()
-        period = json_manager.get_params().get("period")
-        start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
-        end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
 
         print(f"Período: {start_date} a {end_date}")
         PyAutoGui.write(start_date, interval=0.1)
@@ -415,8 +405,8 @@ class RPA:
         self._single_click_image("pesquisar.png", "botoes")
 
         return self._dispatch_message_if_exists()
-        
-    def search(self, tipo) -> RPAResult:
+
+    def search(self, tipo, start_date, end_date) -> RPAResult:
         self._double_click_image("maximizar.png", "botoes")
         time.sleep(2)
 
@@ -426,18 +416,18 @@ class RPA:
 
             self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
 
-            return self._searchSPED()
+            return self._searchSPED(start_date, end_date)
         elif tipo == "sped_ecf":
             print("\nPesquisando arquivos de SPED ECF...")
             self._double_click_image("lupa.png", "botoes")
 
             self._selectOption("combo_sistema.png", "opcao_sped_ecf.png", "comboboxes/sistema")
 
-            return self._searchSPED()
+            return self._searchSPED(start_date, end_date)
         elif tipo == "sped_fiscal":
             return self._searchSPEDFiscal()
         elif tipo == "sped_contabil":
-            return self._searchSPEDContabil()
+            return self._searchSPEDContabil(start_date, end_date)
         else:
             print(f"⚠ Tipo de pesquisa não reconhecido: {tipo}")
             return RPAResult.IMAGE_NOT_FOUND
