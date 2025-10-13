@@ -436,10 +436,8 @@ class RPA:
         print("\nSelecionando arquivos...")
         
         if range_dates:
-            # Inicializa o EasyOCR Manager
             ocr_manager = EasyOCRManager()
             
-            # Clica na coluna de data início para ordenar
             self._single_click_image("coluna_data_inicio.png", "tabelas")
             time.sleep(1)
             self._single_click_image("coluna_transmissao.png", "tabelas")
@@ -447,14 +445,12 @@ class RPA:
             
             print(f"🔍 Mapeando posições de {len(range_dates)} datas na coluna 'Data Início'...")
             
-            # MÉTODO OTIMIZADO: Usa a lógica testada e aprovada
             detected_dates = ocr_manager.extract_data_inicio_dates_optimized()
             
             if not detected_dates:
                 print("❌ Nenhuma data foi encontrada na coluna Data Início")
                 return False
             
-            # Converte para dicionário de posições para compatibilidade
             date_positions = {d['date']: d['position'] for d in detected_dates}
             
             print(f"✅ Detectadas {len(detected_dates)} datas na coluna 'Data Início':")
@@ -465,27 +461,23 @@ class RPA:
                 print(f"   📅 {date} → ({x:.1f}, {y:.1f}) [{date_type}]")
             
             print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas:")
+
             for i, date in enumerate(range_dates):
                 if date in date_positions:
-                    x, y = date_positions[date]
-                    print(f"📍 Clicando na data {date} na posição ({x:.1f}, {y:.1f})")
+                    y = date_positions[date]
+                    print(f"📍 Clicando na data {date} na posição (459, {y:.1f})")
                     
-                    # Move o mouse primeiro (baseado nos testes)
-                    PyAutoGui.moveTo(x, y, duration=0.3)
+                    PyAutoGui.moveTo(459, y, duration=0.3)
                     time.sleep(0.2)
                     
-                    # Executa o clique
-                    PyAutoGui.click(x, y)
-                    time.sleep(0.3)
-                    
+                    PyAutoGui.click(459, y)
+                    time.sleep(1)
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
                     print(f"❌ Data {date} não encontrada na coluna 'Data Início'")
                     
                 if i < len(range_dates) - 1:
                     time.sleep(1)
-            
-            time.sleep(60)
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
             time.sleep(1)
