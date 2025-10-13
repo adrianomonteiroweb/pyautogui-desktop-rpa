@@ -445,31 +445,35 @@ class RPA:
             self._single_click_image("coluna_transmissao.png", "tabelas")
             time.sleep(1)
             
-            print(f"🔍 Mapeando posições de {len(range_dates)} datas...")
+            print(f"🔍 Mapeando posições de {len(range_dates)} datas na coluna 'Data Início'...")
             
-            # OTIMIZAÇÃO: Captura screenshot e mapeia TODAS as posições das datas de uma vez
+            # NOVA ABORDAGEM: Usa a posição da coluna para filtrar apenas datas válidas
             screenshot_path = ocr_manager.take_screenshot()
-            date_positions = ocr_manager.find_all_dates_positions(range_dates, screenshot_path)
+            date_positions = ocr_manager.find_all_dates_positions_in_column(
+                range_dates, 
+                "coluna_data_inicio.png", 
+                screenshot_path, 
+                column_tolerance=80.0,  # Aumentei a tolerância
+                debug=True  # Ativa o modo debug para ver todas as datas detectadas
+            )
             
-            print(f"✅ Encontradas {len(date_positions)} datas na tela")
+            print(f"✅ Encontradas {len(date_positions)} datas válidas na coluna 'Data Início'")
             
-            # Agora apenas clica nas posições já mapeadas
             for i, date in enumerate(range_dates):
                 if date in date_positions:
                     x, y = date_positions[date]
                     print(f"📍 Clicando na data {date} na posição ({x}, {y})")
                     
-                    # Clica diretamente na posição já conhecida
                     PyAutoGui.click(x, y)
                     
-                    # Clica no checkbox da linha selecionada
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
-                    print(f"❌ Não encontrado arquivo no período: {date}")
+                    print(f"❌ Data {date} não encontrada na coluna 'Data Início'")
                     
-                # Aguarda 1 segundo antes da próxima data (exceto na última)
                 if i < len(range_dates) - 1:
                     time.sleep(1)
+            
+            time.sleep(60)
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
             time.sleep(1)

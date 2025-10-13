@@ -146,7 +146,7 @@ class EasyOCRManager:
     def _is_exact_date_match(self, target: str, text: str) -> bool:
         """
         Verifica se um texto corresponde EXATAMENTE a uma data alvo
-        Otimizado para o padrão DD/MM/YYYY 00:00:00
+        Otimizado para o padrão DD/MM/YYYY 00:00:00 com tolerância para variações do OCR
         
         Args:
             target: Data alvo (ex: "01/07/2025")
@@ -166,11 +166,30 @@ class EasyOCRManager:
         
         # PRIORIDADE 2: Busca pela data básica DD/MM/YYYY
         if target_clean in text_clean:
+            return True
+        
+        # PRIORIDADE 3: Busca mais flexível - verifica se contém os componentes da data
+        try:
             target_parts = target.split('/')
             if len(target_parts) == 3:
                 day, month, year = target_parts
-                if f"{day}/{month}/{year}" in text_clean:
-                    return True
+                
+                # Variações possíveis do OCR para o formato DD/MM/YYYY
+                possible_formats = [
+                    f"{day}/{month}/{year}",
+                    f"{day.lstrip('0')}/{month}/{year}",  # Remove zeros à esquerda do dia
+                    f"{day}/{month.lstrip('0')}/{year}",  # Remove zeros à esquerda do mês
+                    f"{day.lstrip('0')}/{month.lstrip('0')}/{year}",  # Remove zeros à esquerda
+                ]
+                
+                for format_variant in possible_formats:
+                    if format_variant in text_clean:
+                        return True
+                    # Também verifica com horário
+                    if f"{format_variant} 00:00:00" in text_clean:
+                        return True
+        except:
+            pass
         
         return False
     
@@ -334,9 +353,125 @@ class EasyOCRManager:
         
         return self.click_date_in_column(target_date, column_image_path)
     
+    def debug_all_detected_dates(self, screenshot_path: str = None) -> None:
+        """
+        Método de debug que mostra TODAS as datas detectadas na tela com suas posições
+        Útil para identificar por que certas datas não estão sendo encontradas
+        """
+        try:
+            if screenshot_path is None:
+                screenshot_path = self.take_screenshot()
+            
+            results = self.read_text_from_image(screenshot_path)
+            print("\n🔍 DEBUG: Todas as datas detectadas na tela:")
+            
+            date_pattern_found = False
+            for bbox, text, confidence in results:
+                # Procura por qualquer padrão que pareça uma data
+                if any(char.isdigit() for char in text) and ('/' in text or text.count('/') >= 2):
+                    x_centro, y_centro = self._calculate_center_coordinates(bbox)
+                    print(f"  📅 Texto: '{text}' | Posição: ({x_centro:.1f}, {y_centro:.1f}) | Confiança: {confidence:.2f}")
+                    date_pattern_found = True
+            
+            if not date_pattern_found:
+                print("  ❌ Nenhum padrão de data detectado na tela")
+                
+        except Exception as e:
+            print(f"❌ Erro no debug: {e}")
+
+    def find_all_dates_positions_in_column(self, target_dates: List[str], column_image_filename: str, 
+                                          screenshot_path: str = None, column_tolerance: float = 50.0, 
+                                          debug: bool = False) -> Dict[str, Tuple[float, float]]:
+        """
+        Mapeia as posições de múltiplas datas APENAS na coluna especificada para evitar falsos positivos
+        
+        Args:
+            target_dates: Lista de datas alvo no formato "DD/MM/YYYY"
+            column_image_filename: Nome do arquivo da imagem do cabeçalho da coluna (ex: "coluna_data_inicio.png")
+            screenshot_path: Caminho para screenshot (opcional, captura novo se não fornecido)
+            column_tolerance: Tolerância em pixels para considerar que uma data está na coluna
+            debug: Se True, mostra informações de debug sobre todas as datas detectadas
+            
+        Returns:
+            Dict[str, Tuple[float, float]]: Dicionário com data -> (x, y) das posições encontradas
+        """
+        try:
+            if screenshot_path is None:
+                screenshot_path = self.take_screenshot()
+            
+            # Debug: mostra todas as datas detectadas se solicitado
+            if debug:
+                self.debug_all_detected_dates(screenshot_path)
+            
+            # Encontra a posição da coluna "Data Início"
+            column_image_path = os.path.join(os.path.dirname(__file__), "images", "tabelas", column_image_filename)
+            column_position = self.find_column_header_position(column_image_path)
+            
+            if not column_position:
+                print(f"❌ Não foi possível localizar a coluna {column_image_filename}")
+                return {}
+            
+            column_x, column_y = column_position
+            print(f"📍 Coluna '{column_image_filename}' encontrada em: x={column_x}, y={column_y}")
+            print(f"📏 Tolerância da coluna: ±{column_tolerance} pixels")
+            
+            # Executa OCR no screenshot
+            results = self.read_text_from_image(screenshot_path)
+            date_positions = {}
+            
+            print(f"🔍 Buscando {len(target_dates)} datas na coluna...")
+            
+            # Para cada data alvo, procura sua posição APENAS na coluna correta
+            for target_date in target_dates:
+                valid_matches = []
+                all_matches = []  # Para debug
+                
+                for bbox, text, confidence in results:
+                    if self._is_exact_date_match(target_date, text):
+                        x_centro, y_centro = self._calculate_center_coordinates(bbox)
+                        all_matches.append((x_centro, y_centro, text))
+                        
+                        # Verifica se a data está na coluna correta (mesma coordenada X aproximada)
+                        x_diff = abs(x_centro - column_x)
+                        is_in_column = x_diff <= column_tolerance
+                        is_below_header = y_centro > column_y
+                        
+                        if is_in_column and is_below_header:
+                            valid_matches.append((bbox, text, confidence, x_centro, y_centro))
+                            print(f"✅ Data {target_date} encontrada na coluna em ({x_centro:.1f}, {y_centro:.1f})")
+                        else:
+                            print(f"⚠️  Data {target_date} encontrada em ({x_centro:.1f}, {y_centro:.1f}) mas fora da coluna (diff_x: {x_diff:.1f}, below_header: {is_below_header})")
+                
+                # Se não encontrou nenhuma ocorrência válida, mostra todas as ocorrências para debug
+                if not valid_matches and all_matches:
+                    print(f"🔍 Debug - Todas as ocorrências de {target_date}:")
+                    for x, y, text in all_matches:
+                        print(f"    📍 Posição: ({x:.1f}, {y:.1f}) | Texto: '{text}'")
+                
+                # Ordena por posição visual e pega a última (mais recente na tabela)
+                if valid_matches:
+                    valid_matches_sorted = self._sort_matches_visually(valid_matches)
+                    last_match = valid_matches_sorted[-1]
+                    _, _, _, x_centro, y_centro = last_match
+                    date_positions[target_date] = (x_centro, y_centro)
+                    if debug:
+                        print(f"✅ Data {target_date} mapeada com sucesso para posição ({x_centro:.1f}, {y_centro:.1f})")
+                else:
+                    if debug:
+                        print(f"❌ Data {target_date} não encontrada na coluna correta")
+                    else:
+                        print(f"❌ Data {target_date} não encontrada na coluna correta")
+            
+            return date_positions
+            
+        except Exception as e:
+            print(f"❌ Erro ao mapear posições das datas na coluna: {e}")
+            return {}
+
     def find_all_dates_positions(self, target_dates: List[str], screenshot_path: str = None) -> Dict[str, Tuple[float, float]]:
         """
         Mapeia as posições de múltiplas datas de uma só vez para otimizar o processo
+        NOTA: Este método não filtra por coluna - use find_all_dates_positions_in_column para maior precisão
         
         Args:
             target_dates: Lista de datas alvo no formato "DD/MM/YYYY"
