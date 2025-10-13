@@ -88,8 +88,6 @@ def for_each_with_retry(items, process_func, max_retries=2, retry_delay=300, ite
                     time.sleep(retry_delay)
 
 def process_empresa(empresa, first_time):
-    """Função que processa cada empresa para todos os tipos habilitados"""
-
     rpa = RPA()
     
     try:
@@ -107,70 +105,64 @@ def process_empresa(empresa, first_time):
             print(f"❌ Falha na inicialização: {init_result.value if init_result else 'Resultado nulo'}")
             raise Exception(f"Falha na inicialização: {init_result.value}")
         
-        # Troca perfil para a empresa
         empresa_result = rpa.trocarPerfil(empresa['cnpj'], first_time=first_time)
 
         if empresa_result != RPAResult.SUCCESS:
             print(f"❌ Falha na seleção da empresa: {empresa_result.value if empresa_result else 'Resultado nulo'}")
             raise Exception(f"Falha na seleção da empresa: {empresa_result.value}")
         
-        # Processa todos os tipos habilitados para esta empresa
         for tipo in tipos_habilitados:
             print(f"  📋 Processando tipo: {tipo}")
 
             files_manager = FilesManager()
             
             period = json_manager.get_params().get("period")
-            # Convert ISO dates to DD/MM/YYYY format for generate_monthly_start_dates
-            start_date_iso = period["start_date"]  # e.g., "2025-01-01"
-            end_date_iso = period["end_date"]      # e.g., "2025-12-31"
+            start_date_iso = period["start_date"]
+            end_date_iso = period["end_date"]
             
-            # Convert ISO to DD/MM/YYYY format for the date generator
             from datetime import datetime
             start_date_formatted = datetime.strptime(start_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
             end_date_formatted = datetime.strptime(end_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
 
-            # range_dates só deve ser igual a ele mesmo se tipo for diferente de "sped_fiscal"
             if tipo != "sped_fiscal":
                 range_dates = DateFormatter.generate_monthly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
             else:
                 range_dates = None
-
 
                 range_dates = [
                     DateFormatter.generate_yearly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
                 ]
 
 
-
             for i, year_dates in enumerate(range_dates):
                 is_first_iteration = (i == 0)
+
                 search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=year_dates[year_dates.__len__() - 1], is_first_iteration=is_first_iteration)
 
                 if search_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
-                    continue  # Continua com outros tipos
+                    continue
 
                 request_result = rpa.request_files(range_dates=year_dates)
 
                 if request_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na solicitação dos arquivos para tipo {tipo}: {request_result.value if request_result else 'Resultado nulo'}")
-                    # Se for um caso específico que deve pular, continue
+
                     if "arquivo não encontrado" in str(request_result.value).lower():
                         print(f"  ⏭️ Nenhum arquivo encontrado para tipo {tipo} - continuando...")
                         continue
+
                     raise Exception(f"Falha na solicitação dos arquivos: {request_result.value}")
-                
                 
                 downloads_result = rpa.download_files()
 
                 if downloads_result != RPAResult.SUCCESS:
                     print(f"❌ Falha no download dos arquivos para tipo {tipo}: {downloads_result.value if downloads_result else 'Resultado nulo'}")
+
                     raise Exception(f"Falha no download dos arquivos: {downloads_result.value}")
                 
                 print(f"  📁 Movendo arquivos do tipo {tipo}...")
 
-                # Convert dates to DDMMYYYY format for file manager
                 start_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
                 end_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
                 
@@ -209,16 +201,14 @@ def main():
         
     print(f"✅ Encontradas {len(empresas_filtradas)} empresas.")
     
-    # Função para extrair nome da empresa para logs
     def get_empresa_name(empresa):
         return f"{empresa['nome']} - CNPJ: {empresa['cnpj']}"
     
-    # Processa cada empresa com retry automático (espera 5 minutos entre tentativas)
     for_each_with_retry(
         items=empresas_filtradas,
         process_func=process_empresa,
         max_retries=2,
-        retry_delay=300,  # 5 minutos como no código original
+        retry_delay=300,
         item_name_func=get_empresa_name
     )
     
