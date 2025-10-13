@@ -445,18 +445,27 @@ class RPA:
             self._single_click_image("coluna_transmissao.png", "tabelas")
             time.sleep(1)
             
-            # Captura o screenshot UMA ÚNICA VEZ antes do loop
-            screenshot_path = ocr_manager.take_screenshot()
+            print(f"🔍 Mapeando posições de {len(range_dates)} datas...")
             
-            # Processa cada data na lista usando o mesmo screenshot
+            # OTIMIZAÇÃO: Captura screenshot e mapeia TODAS as posições das datas de uma vez
+            screenshot_path = ocr_manager.take_screenshot()
+            date_positions = ocr_manager.find_all_dates_positions(range_dates, screenshot_path)
+            
+            print(f"✅ Encontradas {len(date_positions)} datas na tela")
+            
+            # Agora apenas clica nas posições já mapeadas
             for i, date in enumerate(range_dates):
-                # Passa o screenshot já capturado para evitar nova captura
-                success = ocr_manager.click_best_date_match(date, screenshot_path)
-                
-                if success:
+                if date in date_positions:
+                    x, y = date_positions[date]
+                    print(f"📍 Clicando na data {date} na posição ({x}, {y})")
+                    
+                    # Clica diretamente na posição já conhecida
+                    PyAutoGui.click(x, y)
+                    
+                    # Clica no checkbox da linha selecionada
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
-                    print(f"Não encontrado arquivo no período: {date}")
+                    print(f"❌ Não encontrado arquivo no período: {date}")
                     
                 # Aguarda 1 segundo antes da próxima data (exceto na última)
                 if i < len(range_dates) - 1:

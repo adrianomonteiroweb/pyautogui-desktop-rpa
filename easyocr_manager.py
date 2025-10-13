@@ -334,6 +334,46 @@ class EasyOCRManager:
         
         return self.click_date_in_column(target_date, column_image_path)
     
+    def find_all_dates_positions(self, target_dates: List[str], screenshot_path: str = None) -> Dict[str, Tuple[float, float]]:
+        """
+        Mapeia as posições de múltiplas datas de uma só vez para otimizar o processo
+        
+        Args:
+            target_dates: Lista de datas alvo no formato "DD/MM/YYYY"
+            screenshot_path: Caminho para screenshot (opcional, captura novo se não fornecido)
+            
+        Returns:
+            Dict[str, Tuple[float, float]]: Dicionário com data -> (x, y) das posições encontradas
+        """
+        try:
+            if screenshot_path is None:
+                screenshot_path = self.take_screenshot()
+            
+            results = self.read_text_from_image(screenshot_path)
+            date_positions = {}
+            
+            # Para cada data alvo, procura sua posição
+            for target_date in target_dates:
+                exact_matches = []
+                
+                for bbox, text, confidence in results:
+                    if self._is_exact_date_match(target_date, text):
+                        x_centro, y_centro = self._calculate_center_coordinates(bbox)
+                        exact_matches.append((bbox, text, confidence, x_centro, y_centro))
+                
+                # Ordena por posição visual e pega a última
+                if exact_matches:
+                    exact_matches_sorted = self._sort_matches_visually(exact_matches)
+                    last_match = exact_matches_sorted[-1]
+                    _, _, _, x_centro, y_centro = last_match
+                    date_positions[target_date] = (x_centro, y_centro)
+            
+            return date_positions
+            
+        except Exception as e:
+            print(f"❌ Erro ao mapear posições das datas: {e}")
+            return {}
+
     def click_best_date_match(self, target_date: str, screenshot_path: str = None) -> bool:
         """
         Método otimizado que busca e clica em datas no formato DD/MM/YYYY 00:00:00
