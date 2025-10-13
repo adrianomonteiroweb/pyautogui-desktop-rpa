@@ -227,6 +227,113 @@ class EasyOCRManager:
     # MÉTODOS DE CLIQUE OTIMIZADOS
     # =============================================================================
     
+    def find_column_header_position(self, column_image_path: str) -> Optional[Tuple[float, float]]:
+        """
+        Encontra a posição do cabeçalho da coluna usando uma imagem de referência
+        
+        Args:
+            column_image_path: Caminho para a imagem do cabeçalho da coluna
+            
+        Returns:
+            Tuple[float, float]: Coordenadas (x, y) do centro da coluna ou None se não encontrar
+        """
+        try:
+            # Localiza a imagem na tela
+            location = pyautogui.locateOnScreen(column_image_path, confidence=0.8)
+            if location:
+                # Retorna o centro da área encontrada
+                center = pyautogui.center(location)
+                return (center.x, center.y)
+            return None
+        except Exception as e:
+            print(f"❌ Erro ao localizar coluna: {e}")
+            return None
+    
+    def click_date_in_column(self, target_date: str, column_image_path: str, 
+                           max_rows_below: int = 10, row_height: int = 25) -> bool:
+        """
+        Clica em uma data específica que está na mesma coluna vertical de um cabeçalho
+        
+        Args:
+            target_date: Data alvo no formato "DD/MM/YYYY"
+            column_image_path: Caminho para a imagem do cabeçalho da coluna
+            max_rows_below: Número máximo de linhas para procurar abaixo do cabeçalho
+            row_height: Altura aproximada de cada linha da tabela em pixels
+            
+        Returns:
+            bool: True se encontrou e clicou, False caso contrário
+        """
+        try:
+            # Encontra a posição da coluna
+            column_position = self.find_column_header_position(column_image_path)
+            if not column_position:
+                print(f"❌ Não foi possível localizar a coluna de referência")
+                return False
+            
+            column_x, column_y = column_position
+            print(f"✅ Coluna encontrada em: x={column_x}, y={column_y}")
+            
+            # Captura screenshot para análise OCR
+            screenshot_path = self.take_screenshot()
+            results = self.read_text_from_image(screenshot_path)
+            
+            # Procura por datas que estão na mesma coluna (mesma coordenada X aproximada)
+            # e abaixo do cabeçalho (coordenada Y maior)
+            tolerance_x = 50  # Tolerância horizontal para considerar "mesma coluna"
+            
+            matches_in_column = []
+            
+            for bbox, text, confidence in results:
+                x_centro, y_centro = self._calculate_center_coordinates(bbox)
+                
+                # Verifica se está na mesma coluna (X similar) e abaixo do cabeçalho (Y maior)
+                if (abs(x_centro - column_x) <= tolerance_x and 
+                    y_centro > column_y and 
+                    y_centro <= column_y + (max_rows_below * row_height)):
+                    
+                    if self._is_exact_date_match(target_date, text):
+                        matches_in_column.append((bbox, text, confidence, x_centro, y_centro))
+            
+            if matches_in_column:
+                # Ordena por posição Y (primeira ocorrência de cima para baixo)
+                matches_in_column.sort(key=lambda x: x[4])  # Ordena por y_centro
+                
+                # Clica na primeira ocorrência encontrada na coluna
+                first_match = matches_in_column[0]
+                bbox, text, confidence, x_centro, y_centro = first_match
+                
+                print(f"✅ Data '{target_date}' encontrada na coluna em: x={x_centro}, y={y_centro}")
+                print(f"   Texto OCR: '{text}' (confiança: {confidence:.2f})")
+                
+                pyautogui.click(x_centro, y_centro)
+                return True
+            else:
+                print(f"❌ Data '{target_date}' não encontrada na coluna especificada")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao clicar na data da coluna: {e}")
+            return False
+    
+    def click_date_below_data_inicio_column(self, target_date: str) -> bool:
+        """
+        Método específico para clicar em datas na coluna "Data Início"
+        
+        Args:
+            target_date: Data alvo no formato "DD/MM/YYYY"
+            
+        Returns:
+            bool: True se encontrou e clicou, False caso contrário
+        """
+        column_image_path = os.path.join(os.path.dirname(__file__), 
+                                       "images", "tabelas", "coluna_data_inicio.png")
+        
+        if not os.path.exists(column_image_path):
+            print(f"❌ Imagem da coluna não encontrada: {column_image_path}")
+            return False
+        
+        return self.click_date_in_column(target_date, column_image_path)
+    
     def click_best_date_match(self, target_date: str, screenshot_path: str = None) -> bool:
         """
         Método otimizado que busca e clica em datas no formato DD/MM/YYYY 00:00:00
@@ -274,6 +381,10 @@ class EasyOCR(EasyOCRManager):
     def click_last_occurrence(self, text_to_find: str, fuzzy_match: bool = False) -> bool:
         """Método legado para compatibilidade"""
         return self.click_best_date_match(text_to_find)
+        
+    def click_date_in_data_inicio_column(self, target_date: str) -> bool:
+        """Método para clicar em data específica na coluna Data Início"""
+        return self.click_date_below_data_inicio_column(target_date)
     
     def find_text_coordinates(self, text_to_find: str) -> Optional[Tuple[float, float]]:
         """Método legado para compatibilidade"""
