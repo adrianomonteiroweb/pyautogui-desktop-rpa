@@ -152,3 +152,5 @@ settings.json
 # Keep example files (these should be versioned)
 # !params-example.json
 # !settings-example.json
+
+__tests__/*
