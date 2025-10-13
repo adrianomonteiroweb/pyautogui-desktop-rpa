@@ -447,24 +447,36 @@ class RPA:
             
             print(f"🔍 Mapeando posições de {len(range_dates)} datas na coluna 'Data Início'...")
             
-            # NOVA ABORDAGEM: Usa a posição da coluna para filtrar apenas datas válidas
-            screenshot_path = ocr_manager.take_screenshot()
-            date_positions = ocr_manager.find_all_dates_positions_in_column(
-                range_dates, 
-                "coluna_data_inicio.png", 
-                screenshot_path, 
-                column_tolerance=80.0,  # Aumentei a tolerância
-                debug=True  # Ativa o modo debug para ver todas as datas detectadas
-            )
+            # MÉTODO OTIMIZADO: Usa a lógica testada e aprovada
+            detected_dates = ocr_manager.extract_data_inicio_dates_optimized()
             
-            print(f"✅ Encontradas {len(date_positions)} datas válidas na coluna 'Data Início'")
+            if not detected_dates:
+                print("❌ Nenhuma data foi encontrada na coluna Data Início")
+                return False
             
+            # Converte para dicionário de posições para compatibilidade
+            date_positions = {d['date']: d['position'] for d in detected_dates}
+            
+            print(f"✅ Detectadas {len(detected_dates)} datas na coluna 'Data Início':")
+            for date_info in detected_dates:
+                date = date_info['date']
+                x, y = date_info['position']
+                date_type = date_info['type']
+                print(f"   📅 {date} → ({x:.1f}, {y:.1f}) [{date_type}]")
+            
+            print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas:")
             for i, date in enumerate(range_dates):
                 if date in date_positions:
                     x, y = date_positions[date]
-                    print(f"📍 Clicando na data {date} na posição ({x}, {y})")
+                    print(f"📍 Clicando na data {date} na posição ({x:.1f}, {y:.1f})")
                     
+                    # Move o mouse primeiro (baseado nos testes)
+                    PyAutoGui.moveTo(x, y, duration=0.3)
+                    time.sleep(0.2)
+                    
+                    # Executa o clique
                     PyAutoGui.click(x, y)
+                    time.sleep(0.3)
                     
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
