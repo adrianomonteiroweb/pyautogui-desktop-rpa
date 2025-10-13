@@ -406,9 +406,10 @@ class RPA:
 
         return self._dispatch_message_if_exists()
 
-    def search(self, tipo, start_date, end_date) -> RPAResult:
-        self._double_click_image("maximizar.png", "botoes")
-        time.sleep(2)
+    def search(self, tipo, start_date, end_date, is_first_iteration=True) -> RPAResult:
+        if is_first_iteration:
+            self._double_click_image("maximizar.png", "botoes")
+            time.sleep(2)
 
         if tipo == "sped_contribuicoes":
             print("\nPesquisando arquivos de SPED Contribuições...")
@@ -471,7 +472,7 @@ class RPA:
                     time.sleep(0.2)
                     
                     PyAutoGui.click(x, y)
-                    time.sleep(1)
+                    time.sleep(0.5)
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
                     print(f"❌ Data {date} não encontrada na coluna 'Data Início'")

@@ -143,8 +143,9 @@ def process_empresa(empresa, first_time):
 
 
 
-            for year_dates in range_dates:
-                search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=year_dates[year_dates.__len__() - 1])
+            for i, year_dates in enumerate(range_dates):
+                is_first_iteration = (i == 0)
+                search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=year_dates[year_dates.__len__() - 1], is_first_iteration=is_first_iteration)
 
                 if search_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
