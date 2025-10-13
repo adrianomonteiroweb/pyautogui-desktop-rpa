@@ -464,13 +464,13 @@ class RPA:
 
             for i, date in enumerate(range_dates):
                 if date in date_positions:
-                    y = date_positions[date]
-                    print(f"📍 Clicando na data {date} na posição (459, {y:.1f})")
+                    x, y = date_positions[date]
+                    print(f"📍 Clicando na data {date} na posição ({x:.1f}, {y:.1f})")
                     
-                    PyAutoGui.moveTo(459, y, duration=0.3)
+                    PyAutoGui.moveTo(x, y, duration=0.3)
                     time.sleep(0.2)
                     
-                    PyAutoGui.click(459, y)
+                    PyAutoGui.click(x, y)
                     time.sleep(1)
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
                 else:
