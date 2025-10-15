@@ -20,7 +20,7 @@ class RPAResult(Enum):
 
 @dataclass
 class RPAConfig:
-    confidence: float = 0.9
+    confidence: float = 0.95
     double_click_interval: float = 0.1
     startup_delay: int = 3
     images_folder: str = "images"
@@ -31,11 +31,21 @@ class RPA:
     def __init__(self, config: RPAConfig = None):
         self.config = config or RPAConfig()
         self.desktop_rpa = None
+        self.last_click_y = None  # Controle de posição Y para filtros de coluna
         self._setup_pyautogui()
     
     def _setup_pyautogui(self) -> None:
         PyAutoGui.FAILSAFE = True
         PyAutoGui.PAUSE = 0.1
+    
+    def reset_click_position(self) -> None:
+        """Reseta a posição Y do último clique para permitir nova busca desde o início"""
+        self.last_click_y = None
+    
+    def set_confidence(self, confidence: float) -> None:
+        """Altera o confidence dinamicamente durante a execução"""
+        self.config.confidence = confidence
+        print(f"🎯 Confidence alterado para: {confidence}")
     
     def _get_image_path(self, alias, filename: str) -> str:
         if alias:
@@ -535,7 +545,7 @@ class RPA:
 
     def _single_click_image_filtered_by_column(self, image_filename: str, alias: str = "", silent: bool = False) -> RPAResult:
         """
-        Método simplificado que filtra por range de 47 pixels e posição Y > último click.
+        Método que filtra por range de 47 pixels e posição Y com range limitado.
         Baseado na lógica do teste test_click_dates_01_to_11.py
         
         Args:
@@ -546,13 +556,15 @@ class RPA:
         Returns:
             RPAResult: Resultado da operação
         """
+        # Range máximo de Y para buscar a próxima data (2 linhas = ~36 pixels)
+        max_y_range = 36
+        
         # Localiza a coluna de referência
         column_image_path = self._get_image_path("tabelas", "coluna_data_inicio.png")
         
         if not self._validate_image_file(column_image_path):
             if not silent:
                 print(f"✗ Arquivo de referência não encontrado: {column_image_path}")
-
             return RPAResult.FILE_NOT_EXISTS
         
         try:
@@ -562,7 +574,6 @@ class RPA:
             if not column_locations:
                 if not silent:
                     print("✗ Coluna de referência não encontrada na tela")
-
                 return RPAResult.IMAGE_NOT_FOUND
             
             # Define o range de X (±47 pixels da coluna)
@@ -570,8 +581,20 @@ class RPA:
             min_x = column_center.x - 47
             max_x = column_center.x + 47
             
-            if not silent:
-                print(f"🎯 Buscando {image_filename} no range X: [{min_x} - {max_x}], Y > {getattr(self, 'last_click_y', 0)}")
+            # Define o range de Y (baseado no último click)
+            last_click_y = getattr(self, 'last_click_y', None)
+            
+            if last_click_y is None:
+                # Primeira busca - sem filtro Y
+                min_y = None
+                max_y = None
+                if not silent:
+                    print(f"🎯 Buscando {image_filename} no range X: [{min_x} - {max_x}], Y: sem filtro (primeira busca)")
+            else:
+                min_y = last_click_y + 1  # Mínimo: próximo pixel após o último click
+                max_y = last_click_y + max_y_range  # Máximo: até 2 linhas abaixo
+                if not silent:
+                    print(f"🎯 Buscando {image_filename} no range X: [{min_x} - {max_x}], Y: [{min_y} - {max_y}]")
             
             # Busca a imagem da data
             image_path = self._get_image_path(alias, image_filename)
@@ -579,7 +602,6 @@ class RPA:
             if not self._validate_image_file(image_path):
                 if not silent:
                     print(f"✗ Arquivo de imagem não encontrado: {image_path}")
-
                 return RPAResult.FILE_NOT_EXISTS
             
             # Encontra todas as ocorrências da imagem
@@ -588,34 +610,64 @@ class RPA:
             if not all_locations:
                 if not silent:
                     print(f"✗ Imagem {image_filename} não encontrada na tela")
-
                 return RPAResult.IMAGE_NOT_FOUND
             
-            # Filtra por range X e Y > último click
+            # Filtra por range X e range Y (se definido)
             valid_locations = []
-
-            last_y = getattr(self, 'last_click_y', 0)
-            
             for location in all_locations:
                 center = PyAutoGui.center(location)
-
-                if (min_x <= center.x <= max_x and center.y > last_y):
+                x_valid = min_x <= center.x <= max_x
+                
+                if min_y is None and max_y is None:
+                    # Primeira busca - apenas filtro X
+                    y_valid = True
+                else:
+                    # Buscas subsequentes - filtro X e Y
+                    y_valid = min_y <= center.y <= max_y
+                
+                if x_valid and y_valid:
                     valid_locations.append((location, center))
             
             if not valid_locations:
-                if not silent:
-                    print(f"✗ Nenhuma ocorrência válida de {image_filename} encontrada")
-
-                return RPAResult.IMAGE_NOT_FOUND
+                if min_y is not None and max_y is not None:
+                    if not silent:
+                        print(f"✗ Nenhuma ocorrência válida de {image_filename} encontrada no range Y: [{min_y} - {max_y}]")
+                        
+                        # Tenta expandir o range Y para buscar mais longe (até 3 linhas)
+                        expanded_max_y = last_click_y + (max_y_range * 2)
+                        print(f"🔍 Tentando range expandido Y: [{min_y} - {expanded_max_y}]")
+                    
+                    expanded_valid_locations = []
+                    for location in all_locations:
+                        center = PyAutoGui.center(location)
+                        if (min_x <= center.x <= max_x and min_y <= center.y <= (last_click_y + (max_y_range * 2))):
+                            expanded_valid_locations.append((location, center))
+                    
+                    if not expanded_valid_locations:
+                        if not silent:
+                            print(f"✗ Nenhuma ocorrência encontrada mesmo com range expandido")
+                        return RPAResult.IMAGE_NOT_FOUND
+                    else:
+                        valid_locations = expanded_valid_locations
+                        if not silent:
+                            print(f"✅ Encontrada ocorrência no range expandido")
+                else:
+                    if not silent:
+                        print(f"✗ Nenhuma ocorrência válida de {image_filename} encontrada no range X")
+                    return RPAResult.IMAGE_NOT_FOUND
             
             # Ordena por Y (menor Y primeiro - mais acima na tela)
             valid_locations.sort(key=lambda item: item[1].y)
-            print(f"LOCATIONS: {len(valid_locations)}")
-            print(f"VALID LOCATIONS: {valid_locations}")
-            # Seleciona a primeira posição válida (menor Y)
-            selected_location, selected_center = valid_locations[0]
             
             if not silent:
+                print(f"LOCATIONS: {len(valid_locations)}")
+                print(f"VALID LOCATIONS: {valid_locations}")
+            
+            # Seleciona a posição válida (maior Y - última da lista ordenada)
+            selected_location, selected_center = valid_locations[-1]
+            
+            if not silent:
+                print(f"SELECTED LOCATION: {selected_location}, CENTER: {selected_center}")
                 print(f"✅ Clicando em {image_filename} na posição {selected_center}")
             
             # Atualiza a posição Y do último click
@@ -623,7 +675,6 @@ class RPA:
             
             # Executa o clique
             PyAutoGui.click(selected_center)
-
             return RPAResult.SUCCESS
             
         except Exception as e:
@@ -637,7 +688,8 @@ class RPA:
         print("\nSelecionando arquivos...")
         
         if range_dates:
-            self.last_click_y = 0
+            # Reseta o estado de posição Y para começar do início
+            self.reset_click_position()
             
             self._single_click_image("coluna_data_inicio.png", "tabelas")
             time.sleep(1)
@@ -657,7 +709,7 @@ class RPA:
                 month = int(date.split("/")[1])
                 period_file = f"01.{month:02d}.png"
 
-                result = self._single_click_image_filtered_by_column(period_file, "tabelas", silent=True)
+                result = self._single_click_image_filtered_by_column(period_file, "tabelas")
 
                 if result == RPAResult.SUCCESS:
                     time.sleep(1)
@@ -671,7 +723,6 @@ class RPA:
                     print(f"    ⚠️ Data {date} não encontrada.")
             
             print(f"\n📊 {dates_clicked} datas clicadas com sucesso")
-            time.sleep(60)
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
             time.sleep(1)

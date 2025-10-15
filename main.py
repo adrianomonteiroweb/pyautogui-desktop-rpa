@@ -3,7 +3,7 @@ import uuid
 
 from date_formatter import DateFormatter
 from json_manager import JSONManager
-from rpa import RPA, RPAResult
+from rpa import RPA, RPAResult, RPAConfig
 from files_manager import FilesManager
 from text_formatter import TextFormatter
 
@@ -88,7 +88,14 @@ def for_each_with_retry(items, process_func, max_retries=2, retry_delay=300, ite
                     time.sleep(retry_delay)
 
 def process_empresa(empresa, first_time):
-    rpa = RPA()
+    # Configuração inicial com confidence baixo para o init()
+    config = RPAConfig(
+        confidence=0.9,  # Confidence baixo para encontrar e abrir a aplicação
+        preview_mode=False,  # False para produção
+        images_folder="images"
+    )
+
+    rpa = RPA(config)
     
     try:
         json_manager = JSONManager()
@@ -104,6 +111,9 @@ def process_empresa(empresa, first_time):
         if init_result != RPAResult.SUCCESS:
             print(f"❌ Falha na inicialização: {init_result.value if init_result else 'Resultado nulo'}")
             raise Exception(f"Falha na inicialização: {init_result.value}")
+        
+        # Após abrir a aplicação, aumenta o confidence para cliques mais precisos
+        rpa.set_confidence(0.95)
         
         empresa_result = rpa.trocarPerfil(empresa['cnpj'], first_time=first_time)
 
