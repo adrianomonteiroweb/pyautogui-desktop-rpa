@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Union
+import calendar
 
 
 class DateFormatter:
@@ -102,6 +103,52 @@ class DateFormatter:
             return True
         except ValueError:
             return False
+
+    @staticmethod
+    def get_last_day_of_month(date_str: str, input_format: str = "dd/mm/yyyy") -> str:
+        """
+        Calcula o último dia do mês para uma data fornecida.
+        
+        Args:
+            date_str (str): Data no formato especificado (ex: "01/10/2025")
+            input_format (str): Formato da data de entrada (padrão: "dd/mm/yyyy")
+            
+        Returns:
+            str: Data do último dia do mês no mesmo formato de entrada (ex: "31/10/2025")
+            
+        Raises:
+            ValueError: Se a data não estiver no formato correto
+        """
+        try:
+            # Parse da data de acordo com o formato especificado
+            if input_format.lower() == "dd/mm/yyyy":
+                date_obj = datetime.strptime(date_str, "%d/%m/%Y")
+                output_format = "%d/%m/%Y"
+            elif input_format.lower() == "ddmmyyyy":
+                date_obj = datetime.strptime(date_str, "%d%m%Y")
+                output_format = "%d%m%Y"
+            elif input_format.lower() == "iso":
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                output_format = "%Y-%m-%d"
+            else:
+                raise ValueError(f"Formato não suportado: {input_format}")
+            
+            # Calcula o último dia do mês
+            year = date_obj.year
+            month = date_obj.month
+            last_day = calendar.monthrange(year, month)[1]
+            
+            # Cria a data do último dia do mês
+            last_day_date = datetime(year, month, last_day)
+            
+            # Retorna no mesmo formato de entrada
+            return last_day_date.strftime(output_format)
+            
+        except ValueError as e:
+            if "does not match format" in str(e):
+                raise ValueError(f"Formato de data inválido. Use o formato {input_format}") from e
+            else:
+                raise e
 
     @staticmethod
     def generate_monthly_start_dates(start_date: str, end_date: str, format_type: str = "dd/mm/yyyy") -> list:

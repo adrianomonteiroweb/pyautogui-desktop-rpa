@@ -147,7 +147,13 @@ def process_empresa(empresa, first_time):
             for i, year_dates in enumerate(range_dates):
                 is_first_iteration = (i == 0)
 
-                search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=year_dates[year_dates.__len__() - 1], is_first_iteration=is_first_iteration)
+                # A data inicial do último mês (ex: "01/10/2025")
+                last_month_start = year_dates[year_dates.__len__() - 1]
+                
+                # Calcula o último dia do mês (ex: "31/10/2025")
+                end_date = DateFormatter.get_last_day_of_month(last_month_start, input_format="dd/mm/yyyy")
+
+                search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=end_date, is_first_iteration=is_first_iteration)
 
                 if search_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")

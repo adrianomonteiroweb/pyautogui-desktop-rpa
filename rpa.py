@@ -425,11 +425,15 @@ class RPA:
         self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
 
         print(f"Buscando arquivos no período entre {start_date} e {end_date}...")
+
+        start_date = start_date.replace("/", "")
+        end_date = end_date.replace("/", "")
+        
         PyAutoGui.write(start_date, interval=0.1)
         PyAutoGui.press("Tab")
         PyAutoGui.write(end_date, interval=0.1)
         PyAutoGui.press("Enter")
-
+        
         self._single_click_image("pesquisar.png", "botoes")
 
         return self._dispatch_message_if_exists()
