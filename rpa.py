@@ -610,7 +610,8 @@ class RPA:
             
             # Ordena por Y (menor Y primeiro - mais acima na tela)
             valid_locations.sort(key=lambda item: item[1].y)
-            
+            print(f"LOCATIONS: {len(valid_locations)}")
+            print(f"VALID LOCATIONS: {valid_locations}")
             # Seleciona a primeira posição válida (menor Y)
             selected_location, selected_center = valid_locations[0]
             
