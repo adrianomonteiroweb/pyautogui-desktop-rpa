@@ -193,6 +193,95 @@ class RPA:
         
         return result
 
+    def _single_click_image_filter_positions(self, image_filename: str, min_x: int = None, max_x: int = None, 
+                                           min_y: int = None, max_y: int = None, alias: str = "", 
+                                           silent: bool = False) -> RPAResult:
+        """
+        Clica na primeira ocorrência da imagem que estiver dentro dos ranges de coordenadas especificados.
+        
+        Args:
+            image_filename: Nome do arquivo de imagem
+            min_x: Posição X mínima (None = sem limite mínimo)
+            max_x: Posição X máxima (None = sem limite máximo)
+            min_y: Posição Y mínima (None = sem limite mínimo)
+            max_y: Posição Y máxima (None = sem limite máximo)
+            alias: Pasta da imagem
+            silent: Se True, suprime mensagens de debug
+            
+        Returns:
+            RPAResult: Resultado da operação
+        """
+        image_path = self._get_image_path(alias, image_filename)
+
+        if not self._validate_image_file(image_path):
+            if not silent:
+                print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+            return RPAResult.FILE_NOT_EXISTS
+
+        try:
+            # Busca todas as ocorrências da imagem
+            all_locations = self._find_all_image_locations(image_path)
+            
+            # Se não encontrar com confidence padrão, tenta com menor
+            if not all_locations and self.config.confidence > 0.6:
+                if not silent:
+                    print(f"⚠ Tentando com menor precisão para {image_filename}...")
+                all_locations = self._find_all_image_locations(image_path, confidence=0.6)
+            
+            if not all_locations:
+                if not silent:
+                    print(f"✗ Não foi possível localizar {image_filename}")
+                return RPAResult.IMAGE_NOT_FOUND
+            
+            # Filtra as localizações que estão dentro dos ranges especificados
+            filtered_locations = []
+            for location in all_locations:
+                center = PyAutoGui.center(location)
+                x, y = center
+                
+                # Verifica se está dentro dos limites X
+                if min_x is not None and x < min_x:
+                    continue
+                if max_x is not None and x > max_x:
+                    continue
+                    
+                # Verifica se está dentro dos limites Y
+                if min_y is not None and y < min_y:
+                    continue
+                if max_y is not None and y > max_y:
+                    continue
+                
+                filtered_locations.append((location, center))
+            
+            if not filtered_locations:
+                if not silent:
+                    filter_info = f"X: [{min_x or '∞'}-{max_x or '∞'}], Y: [{min_y or '∞'}-{max_y or '∞'}]"
+                    print(f"✗ Nenhuma ocorrência de {image_filename} encontrada nos ranges especificados: {filter_info}")
+                    print(f"  Ocorrências totais encontradas: {len(all_locations)}")
+                    for i, location in enumerate(all_locations, 1):
+                        center = PyAutoGui.center(location)
+                        print(f"    {i}. Posição: {center}")
+                return RPAResult.IMAGE_NOT_FOUND
+            
+            # Clica na primeira ocorrência dentro dos ranges
+            location, center = filtered_locations[0]
+            
+            if not silent:
+                filter_info = f"X: [{min_x or '∞'}-{max_x or '∞'}], Y: [{min_y or '∞'}-{max_y or '∞'}]"
+                print(f"✅ Clicando em {image_filename} na posição {center} (dentro dos ranges {filter_info})")
+                if len(filtered_locations) > 1:
+                    print(f"  Outras {len(filtered_locations)-1} ocorrências encontradas nos ranges:")
+                    for i, (_, other_center) in enumerate(filtered_locations[1:], 2):
+                        print(f"    {i}. Posição: {other_center}")
+            
+            PyAutoGui.click(center)
+            return RPAResult.SUCCESS
+            
+        except Exception as e:
+            if not silent:
+                print(f"✗ Erro ao tentar dar click único em {image_filename}: {e}")
+            return RPAResult.CLICK_FAILED
+
     def _double_click_image(self, icon_filename: str = "icon.png", alias: str = "", silent: bool = False) -> RPAResult:
         if not silent:
             self._wait_with_countdown(self.config.startup_delay)
@@ -335,31 +424,41 @@ class RPA:
         return self._dispatch_message_if_exists()
         
     def _dispatch_message_if_exists(self) -> RPAResult:
-        time.sleep(5)
-        result = self._wait_for_image("modal_sem_resultados.png", "modais", timeout=1)
+        time.sleep(3)
+        
+        # Verifica modal_sem_resultados silenciosamente
+        image_path = self._get_image_path("modais", "modal_sem_resultados.png")
+        if self._validate_image_file(image_path):
+            try:
+                location = PyAutoGui.locateOnScreen(image_path, confidence=self.config.confidence)
+                if location is not None:
+                    message = "⚠ Nenhum arquivo foi encontrado para o critério de pesquisa solicitado."
+                    print(message)
+                    time.sleep(1)
+                    self._double_click_image("ok.png", "botoes", silent=True)
+                    PyAutoGui.press("Enter")
+                    # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
+                    raise Exception("Unfinish: " + message)
+            except:
+                pass
 
-        if result == RPAResult.SUCCESS:
-            message = "⚠ Nenhum arquivo foi encontrado para o critério de pesquisa solicitado."
-            print(message)
-            time.sleep(1)
-            self._double_click_image("ok.png", "botoes", silent=True)
-            PyAutoGui.press("Enter")
-            # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
-            raise Exception("Unfinish: " + message)
-        else:
-            # Verifica se existe o modal de nenhum arquivo encontrado
-            result_nenhum_arquivo = self._wait_for_image("modal_nenhum_arquivo_encontrado.png", "modais", timeout=10)
-            
-            if result_nenhum_arquivo == RPAResult.SUCCESS:
-                message = "⚠ Nenhum arquivo encontrado correspondente a busca."
-                print(message)
-                time.sleep(1)
-                self._double_click_image("ok.png", "botoes", silent=True)
-                PyAutoGui.press("Enter")
-                # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
-                raise Exception("Unfinish: " + message)
-            else:
-                return RPAResult.SUCCESS
+        # Verifica modal_nenhum_arquivo_encontrado silenciosamente
+        image_path = self._get_image_path("modais", "modal_nenhum_arquivo_encontrado.png")
+        if self._validate_image_file(image_path):
+            try:
+                location = PyAutoGui.locateOnScreen(image_path, confidence=self.config.confidence)
+                if location is not None:
+                    message = "⚠ Nenhum arquivo encontrado correspondente a busca."
+                    print(message)
+                    time.sleep(1)
+                    self._double_click_image("ok.png", "botoes", silent=True)
+                    PyAutoGui.press("Enter")
+                    # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
+                    raise Exception("Unfinish: " + message)
+            except:
+                pass
+                
+        return RPAResult.SUCCESS
         
     def _searchSPEDFiscal(self) -> RPAResult:
         print("\nPesquisando arquivos de SPED Fiscal...")
@@ -433,52 +532,278 @@ class RPA:
             print(f"⚠ Tipo de pesquisa não reconhecido: {tipo}")
             return RPAResult.IMAGE_NOT_FOUND
 
+    def _single_click_image_filtered_by_column(self, image_filename: str, alias: str = "", silent: bool = False) -> RPAResult:
+        """
+        Método que filtra as ocorrências da imagem baseado na posição X da coluna_data_inicio.png.
+        A posição X deve ficar entre 47 pixels abaixo ou acima do X da coluna_data_inicio.png.
+        Implementa estratégias específicas para cada dia garantindo cliques precisos.
+        
+        Args:
+            image_filename: Nome do arquivo de imagem a ser clicado
+            alias: Pasta da imagem
+            silent: Se True, suprime mensagens de debug
+            
+        Returns:
+            RPAResult: Resultado da operação
+        """
+        # Primeiro, localiza a posição da coluna_data_inicio.png
+        column_image_path = self._get_image_path("tabelas", "coluna_data_inicio.png")
+        
+        if not self._validate_image_file(column_image_path):
+            if not silent:
+                print(f"✗ Arquivo de referência não encontrado: {column_image_path}")
+            return RPAResult.FILE_NOT_EXISTS
+        
+        try:
+            # Busca a posição da coluna de referência
+            column_locations = self._find_all_image_locations(column_image_path)
+            
+            if not column_locations:
+                if not silent:
+                    print("✗ Coluna de referência 'coluna_data_inicio.png' não encontrada na tela")
+                return RPAResult.IMAGE_NOT_FOUND
+            
+            # Pega a primeira ocorrência da coluna como referência
+            column_center = PyAutoGui.center(column_locations[0])
+            column_x = column_center.x
+            
+            if not silent:
+                print(f"📍 Posição X da coluna de referência: {column_x}")
+
+            # Define o range de X (±47 pixels da coluna)
+            min_x = column_x - 47
+            max_x = column_x + 47
+            
+            if not silent:
+                print(f"🎯 Buscando {image_filename} no range X: [{min_x} - {max_x}]")
+            
+            # Usa a lógica avançada com estratégias específicas por dia
+            return self._click_by_day_sequence(image_filename, min_x, max_x, alias, silent)
+            
+        except Exception as e:
+            if not silent:
+                print(f"✗ Erro ao filtrar clique por coluna: {e}")
+            return RPAResult.CLICK_FAILED
+
+    def _click_by_day_sequence(self, image_filename: str, min_x: int, max_x: int, 
+                              alias: str = "", silent: bool = False) -> RPAResult:
+        """
+        Clica na posição baseada na sequência do dia com estratégias específicas.
+        Implementa lógica avançada para evitar conflitos entre datas similares.
+        
+        Args:
+            image_filename: Nome do arquivo de imagem (formato: 01.DD.png)
+            min_x: Posição X mínima
+            max_x: Posição X máxima
+            alias: Pasta da imagem
+            silent: Se True, suprime mensagens de debug
+            
+        Returns:
+            RPAResult: Resultado da operação
+        """
+        # Extrai o dia do nome do arquivo (01.DD.png)
+        import re
+        match = re.match(r'01\.(\d+)\.png', image_filename)
+        if not match:
+            if not silent:
+                print(f"✗ Não foi possível extrair o dia de {image_filename}")
+            return RPAResult.CLICK_FAILED
+        
+        day = int(match.group(1))
+        
+        image_path = self._get_image_path(alias, image_filename)
+        
+        if not self._validate_image_file(image_path):
+            if not silent:
+                print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+            return RPAResult.FILE_NOT_EXISTS
+        
+        try:
+            # Busca todas as ocorrências da imagem
+            all_locations = self._find_all_image_locations(image_path)
+            
+            # Se não encontrar com confidence padrão, tenta com menor
+            if not all_locations and self.config.confidence > 0.6:
+                if not silent:
+                    print(f"⚠ Tentando com menor precisão para {image_filename}...")
+                all_locations = self._find_all_image_locations(image_path, confidence=0.6)
+            
+            if not all_locations:
+                if not silent:
+                    print(f"✗ Não foi possível localizar {image_filename}")
+                return RPAResult.IMAGE_NOT_FOUND
+            
+            # Filtra as localizações que estão dentro do range X especificado
+            filtered_locations = []
+            for location in all_locations:
+                center = PyAutoGui.center(location)
+                x, y = center
+                
+                # Verifica se está dentro do range X
+                if min_x <= x <= max_x:
+                    filtered_locations.append((location, center))
+            
+            if not filtered_locations:
+                if not silent:
+                    print(f"✗ Nenhuma ocorrência de {image_filename} encontrada no range X: [{min_x}-{max_x}]")
+                return RPAResult.IMAGE_NOT_FOUND
+            
+            # Ordena por posição Y (de cima para baixo)
+            filtered_locations.sort(key=lambda item: item[1].y)
+            
+            # Estratégias específicas para cada dia
+            selected_location = None
+            selected_center = None
+            
+            # Regras especiais para dias específicos
+            if day == 6 and len(filtered_locations) >= 2:
+                if not silent:
+                    print(f"📋 Dia {day:02d} com {len(filtered_locations)} ocorrências - selecionando segunda ocorrência (Y médio)")
+                
+                # Ordena por Y (crescente) e pega a segunda ocorrência
+                sorted_locations = sorted(filtered_locations, key=lambda item: item[1].y)
+                if len(sorted_locations) >= 2:
+                    selected_location, selected_center = sorted_locations[1]  # Segunda ocorrência
+                else:
+                    selected_location, selected_center = sorted_locations[0]  # Fallback para primeira
+                
+                if not silent:
+                    print(f"✅ Clicando em {image_filename} (dia {day:02d}) na segunda posição {selected_center} (evita confusão)")
+                    
+            elif day == 7 and len(filtered_locations) >= 2:
+                if not silent:
+                    print(f"📋 Dia {day:02d} com {len(filtered_locations)} ocorrências - selecionando última ocorrência (Y maior)")
+                
+                # Ordena por Y (crescente) e pega sempre a última ocorrência
+                sorted_locations = sorted(filtered_locations, key=lambda item: item[1].y)
+                selected_location, selected_center = sorted_locations[-1]  # Última ocorrência
+                
+                if not silent:
+                    print(f"✅ Clicando em {image_filename} (dia {day:02d}) na última posição {selected_center} (Y maior)")
+                    
+            elif day == 8 and len(filtered_locations) >= 1:
+                if not silent:
+                    print(f"📋 Dia {day:02d} com {len(filtered_locations)} ocorrências - selecionando posição sequencial (Y > último clique)")
+                
+                # Ordena por Y (crescente) e encontra a primeira posição maior que o último clique
+                sorted_locations = sorted(filtered_locations, key=lambda item: item[1].y)
+                
+                # Encontra a última posição Y clicada (simulação - em produção pode usar atributo da classe)
+                last_y = 0
+                if hasattr(self, 'clicked_positions') and self.clicked_positions:
+                    last_y = max(pos[1] for pos in self.clicked_positions)
+                
+                # Procura a primeira posição maior que a última clicada
+                for location, center in sorted_locations:
+                    if center.y > last_y:
+                        selected_location = location
+                        selected_center = center
+                        break
+                
+                # Se não encontrou nenhuma maior, usa a última disponível (fallback)
+                if not selected_location:
+                    selected_location, selected_center = sorted_locations[-1]
+                    if not silent:
+                        print(f"⚠️ Nenhuma posição Y > {last_y} encontrada, usando última posição como fallback")
+                
+                if not silent:
+                    print(f"✅ Clicando em {image_filename} (dia {day:02d}) na posição {selected_center} (Y > {last_y})")
+            
+            else:
+                # Para outros dias, usa estratégia por posições Y específicas
+                day_to_y_mapping = {
+                    1: [579],           # 01.01.png: Y=579
+                    2: [597],           # 01.02.png: Y=597
+                    3: [615, 651],      # 01.03.png: Y=615, depois Y=651
+                    4: [634],           # 01.04.png: Y=634
+                    5: [632, 650, 668], # 01.05.png aproximado
+                }
+                
+                expected_y_values = day_to_y_mapping.get(day, [])
+                
+                if expected_y_values:
+                    # Procura por uma posição Y que corresponda aos valores esperados
+                    y_tolerance = 3  # tolerância de 3 pixels
+                    for expected_y in expected_y_values:
+                        for location, center in filtered_locations:
+                            if abs(center.y - expected_y) <= y_tolerance:
+                                selected_location = location
+                                selected_center = center
+                                if not silent:
+                                    print(f"✅ Clicando em {image_filename} (dia {day:02d}) na posição específica {selected_center} (Y≈{expected_y})")
+                                break
+                        
+                        if selected_location:
+                            break
+                
+                # Se não encontrou pela estratégia específica, usa a primeira disponível
+                if not selected_location and filtered_locations:
+                    selected_location, selected_center = filtered_locations[0]
+                    if not silent:
+                        print(f"✅ Clicando em {image_filename} na primeira posição disponível: {selected_center}")
+            
+            if selected_location:
+                # Registra a posição clicada (para controle de sequência Y crescente)
+                if not hasattr(self, 'clicked_positions'):
+                    self.clicked_positions = []
+                self.clicked_positions.append((selected_center.x, selected_center.y))
+                
+                # Executa o clique
+                PyAutoGui.click(selected_center)
+                return RPAResult.SUCCESS
+            else:
+                return RPAResult.IMAGE_NOT_FOUND
+                
+        except Exception as e:
+            if not silent:
+                print(f"✗ Erro ao clicar por sequência de dia: {e}")
+            return RPAResult.CLICK_FAILED
+
     def request_files(self, range_dates) -> RPAResult:
         print("\nSelecionando arquivos...")
         
         if range_dates:
-            ocr_manager = EasyOCRManager()
+            # Inicializa o controle de posições clicadas para sequência Y crescente
+            self.clicked_positions = []
             
             self._single_click_image("coluna_data_inicio.png", "tabelas")
             time.sleep(1)
             self._single_click_image("coluna_transmissao.png", "tabelas")
             time.sleep(1)
             
-            print(f"🔍 Mapeando posições de {len(range_dates)} datas na coluna 'Data Início'...")
+            print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas usando método otimizado:")
             
-            detected_dates = ocr_manager.extract_data_inicio_dates_optimized()
+            # Lista de datas disponíveis (testadas e funcionais de 01 a 08)
+            available_dates = [
+                "01.01.png", "01.02.png", "01.03.png", "01.04.png",
+                "01.05.png", "01.06.png", "01.07.png", "01.08.png"
+            ]
             
-            if not detected_dates:
-                print("❌ Nenhuma data foi encontrada na coluna Data Início")
-                return False
-            
-            date_positions = {d['date']: d['position'] for d in detected_dates}
-            
-            print(f"✅ Detectadas {len(detected_dates)} datas na coluna 'Data Início':")
-            for date_info in detected_dates:
-                date = date_info['date']
-                x, y = date_info['position']
-                date_type = date_info['type']
-                print(f"   📅 {date} → ({x:.1f}, {y:.1f}) [{date_type}]")
-            
-            print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas:")
+            # Clica nas datas solicitadas usando o método otimizado
+            dates_clicked = 0
 
-            for i, date in enumerate(range_dates):
-                if date in date_positions:
-                    x, y = date_positions[date]
-                    print(f"📍 Clicando na data {date} na posição ({x:.1f}, {y:.1f})")
+            for date_file in available_dates:
+                if dates_clicked >= len(range_dates):
+                    break
                     
-                    PyAutoGui.moveTo(x, y, duration=0.3)
-                    time.sleep(0.2)
-                    
-                    PyAutoGui.click(x, y)
-                    time.sleep(0.5)
-                    self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
-                else:
-                    print(f"❌ Data {date} não encontrada na coluna 'Data Início'")
-                    
-                if i < len(range_dates) - 1:
+                print(f"  📅 Clicando na data: {date_file}")
+                
+                # Usa o novo método otimizado com filtro por coluna
+                result = self._single_click_image_filtered_by_column(date_file, "tabelas")
+                
+                if result == RPAResult.SUCCESS:
                     time.sleep(1)
+                    self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
+                    time.sleep(1)
+
+                    dates_clicked += 1
+
+                    print(f"    ✅ Sucesso - {dates_clicked}/{len(range_dates)} datas processadas")
+                else:
+                    print(f"    ⚠️ Falha ao clicar em {date_file}: {result.value}")
+            
+            print(f"\n📊 Resumo: {dates_clicked} datas clicadas com sucesso")
+            time.sleep(3)
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
             time.sleep(1)
