@@ -1,3 +1,4 @@
+from datetime import date
 import pyautogui as PyAutoGui
 import time
 import os
@@ -623,11 +624,10 @@ class RPA:
 
 
 
-    def request_files(self, range_dates) -> RPAResult:
+    def select_dates(self, range_dates) -> RPAResult:
         print("\nSelecionando arquivos...")
         
         if range_dates:
-            # Inicializa o controle de posições Y (baseado na lógica do teste)
             self.last_click_y = 0
             
             self._single_click_image("coluna_data_inicio.png", "tabelas")
@@ -635,26 +635,21 @@ class RPA:
             self._single_click_image("coluna_transmissao.png", "tabelas")
             time.sleep(1)
             
-            print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas usando método simplificado:")
+            print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas...")
             
-            # Lista de datas disponíveis (expandida até 01.11 conforme o teste)
-            available_dates = [
-                "01.01.png", "01.02.png", "01.03.png", "01.04.png",
-                "01.05.png", "01.06.png", "01.07.png", "01.08.png",
-            ]
-            
-            # Clica nas datas solicitadas usando o método simplificado
             dates_clicked = 0
 
-            for date_file in available_dates:
+            for date in range_dates:
                 if dates_clicked >= len(range_dates):
                     break
                     
-                print(f"  📅 Clicando na data: {date_file}")
-                
-                # Usa o método simplificado com filtro por coluna e Y crescente
-                result = self._single_click_image_filtered_by_column(date_file, "tabelas")
-                
+                print(f"  📅 Clicando na data: {date}")
+
+                month = int(date.split("/")[1])
+                period_file = f"01.{month:02d}.png"
+
+                result = self._single_click_image_filtered_by_column(period_file, "tabelas")
+
                 if result == RPAResult.SUCCESS:
                     time.sleep(1)
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
@@ -664,7 +659,7 @@ class RPA:
 
                     print(f"    ✅ Sucesso - {dates_clicked}/{len(range_dates)} datas processadas")
                 else:
-                    print(f"    ⚠️ Falha ao clicar em {date_file}: {result.value}")
+                    print(f"    ⚠️ Falha ao clicar em {period_file}: {result.value}")
             
             print(f"\n📊 Resumo: {dates_clicked} datas clicadas com sucesso")
             time.sleep(60)
