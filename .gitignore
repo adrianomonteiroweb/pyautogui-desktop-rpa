@@ -154,3 +154,5 @@ settings.json
 # !settings-example.json
 
 __tests__/*
+
+.pyc
