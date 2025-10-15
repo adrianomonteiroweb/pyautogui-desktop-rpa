@@ -552,6 +552,7 @@ class RPA:
         if not self._validate_image_file(column_image_path):
             if not silent:
                 print(f"✗ Arquivo de referência não encontrado: {column_image_path}")
+
             return RPAResult.FILE_NOT_EXISTS
         
         try:
@@ -561,6 +562,7 @@ class RPA:
             if not column_locations:
                 if not silent:
                     print("✗ Coluna de referência não encontrada na tela")
+
                 return RPAResult.IMAGE_NOT_FOUND
             
             # Define o range de X (±47 pixels da coluna)
@@ -577,6 +579,7 @@ class RPA:
             if not self._validate_image_file(image_path):
                 if not silent:
                     print(f"✗ Arquivo de imagem não encontrado: {image_path}")
+
                 return RPAResult.FILE_NOT_EXISTS
             
             # Encontra todas as ocorrências da imagem
@@ -585,20 +588,24 @@ class RPA:
             if not all_locations:
                 if not silent:
                     print(f"✗ Imagem {image_filename} não encontrada na tela")
+
                 return RPAResult.IMAGE_NOT_FOUND
             
             # Filtra por range X e Y > último click
             valid_locations = []
+
             last_y = getattr(self, 'last_click_y', 0)
             
             for location in all_locations:
                 center = PyAutoGui.center(location)
+
                 if (min_x <= center.x <= max_x and center.y > last_y):
                     valid_locations.append((location, center))
             
             if not valid_locations:
                 if not silent:
                     print(f"✗ Nenhuma ocorrência válida de {image_filename} encontrada")
+
                 return RPAResult.IMAGE_NOT_FOUND
             
             # Ordena por Y (menor Y primeiro - mais acima na tela)
@@ -615,6 +622,7 @@ class RPA:
             
             # Executa o clique
             PyAutoGui.click(selected_center)
+
             return RPAResult.SUCCESS
             
         except Exception as e:
@@ -648,7 +656,7 @@ class RPA:
                 month = int(date.split("/")[1])
                 period_file = f"01.{month:02d}.png"
 
-                result = self._single_click_image_filtered_by_column(period_file, "tabelas")
+                result = self._single_click_image_filtered_by_column(period_file, "tabelas", silent=True)
 
                 if result == RPAResult.SUCCESS:
                     time.sleep(1)
@@ -657,11 +665,11 @@ class RPA:
 
                     dates_clicked += 1
 
-                    print(f"    ✅ Sucesso - {dates_clicked}/{len(range_dates)} datas processadas")
+                    print(f"    ✅ Data {date} clicada com sucesso.")
                 else:
-                    print(f"    ⚠️ Falha ao clicar em {period_file}: {result.value}")
+                    print(f"    ⚠️ Data {date} não encontrada.")
             
-            print(f"\n📊 Resumo: {dates_clicked} datas clicadas com sucesso")
+            print(f"\n📊 {dates_clicked} datas clicadas com sucesso")
             time.sleep(60)
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
