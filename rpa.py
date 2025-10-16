@@ -41,7 +41,6 @@ class RPA:
     def set_confidence(self, confidence: float) -> None:
         """Altera o confidence dinamicamente durante a execução"""
         self.config.confidence = confidence
-        print(f"🎯 Confidence alterado para: {confidence}")
     
     def _get_image_path(self, alias, filename: str) -> str:
         if alias:
@@ -437,10 +436,17 @@ class RPA:
         
         self._single_click_image("pesquisar.png", "botoes")
 
-        return self._dispatch_message_if_exists()
+        try:
+            return self._dispatch_message_if_exists()
+        except Exception as e:
+            # Re-lança exceções Unfinish para serem tratadas pelo for_each_with_retry
+            if str(e).startswith("Unfinish:"):
+                raise e
+            # Para outras exceções, retorna erro
+            return RPAResult.ERROR
         
     def _dispatch_message_if_exists(self) -> RPAResult:
-        time.sleep(3)
+        time.sleep(5)
         
         # Verifica modal_sem_resultados silenciosamente
         image_path = self._get_image_path("modais", "modal_sem_resultados.png")
@@ -455,7 +461,11 @@ class RPA:
                     PyAutoGui.press("Enter")
                     # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
                     raise Exception("Unfinish: " + message)
-            except:
+            except Exception as e:
+                # Re-lança se for uma exceção Unfinish
+                if "Unfinish:" in str(e):
+                    raise e
+                # Ignora outros erros (como erros de localização de imagem)
                 pass
 
         # Verifica modal_nenhum_arquivo_encontrado silenciosamente
@@ -468,10 +478,14 @@ class RPA:
                     print(message)
                     time.sleep(1)
                     self._double_click_image("ok.png", "botoes", silent=True)
-                    PyAutoGui.press("Enter")
+                    self._double_click_image("fechar.png", "botoes", silent=True)
                     # Lança exceção com mensagem "Unfinish" para o loop entender que deve pular
                     raise Exception("Unfinish: " + message)
-            except:
+            except Exception as e:
+                # Re-lança se for uma exceção Unfinish
+                if "Unfinish:" in str(e):
+                    raise e
+                # Ignora outros erros (como erros de localização de imagem)
                 pass
 
         # Verifica modal de erro de procuração eletrônica
@@ -523,7 +537,14 @@ class RPA:
 
         self._single_click_image("pesquisar.png", "botoes")
 
-        return self._dispatch_message_if_exists()
+        try:
+            return self._dispatch_message_if_exists()
+        except Exception as e:
+            # Re-lança exceções Unfinish para serem tratadas pelo for_each_with_retry
+            if str(e).startswith("Unfinish:"):
+                raise e
+            # Para outras exceções, retorna erro
+            return RPAResult.ERROR
 
     def _searchSPEDContabil(self, start_date, end_date) -> RPAResult:
         print("\nPesquisando arquivos de SPED Contábil...")
@@ -540,7 +561,14 @@ class RPA:
 
         self._single_click_image("pesquisar.png", "botoes")
 
-        return self._dispatch_message_if_exists()
+        try:
+            return self._dispatch_message_if_exists()
+        except Exception as e:
+            # Re-lança exceções Unfinish para serem tratadas pelo for_each_with_retry
+            if str(e).startswith("Unfinish:"):
+                raise e
+            # Para outras exceções, retorna erro
+            return RPAResult.ERROR
 
     def search(self, tipo, start_date, end_date, is_first_iteration) -> RPAResult:
         self.set_confidence(0.9)
@@ -563,7 +591,7 @@ class RPA:
 
             self._selectOption("combo_sistema.png", "opcao_sped_ecf.png", "comboboxes/sistema")
 
-            return self._searchSPED(start_date, end_date)
+            return self._searchSPED(start_date, end_date, is_first_iteration)
         elif tipo == "sped_fiscal":
             return self._searchSPEDFiscal()
         elif tipo == "sped_contabil":

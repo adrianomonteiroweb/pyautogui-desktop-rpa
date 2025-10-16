@@ -202,10 +202,6 @@ def process_empresa(empresa, first_time):
                     print(f"  ❌ Erro ao mover arquivos do tipo {tipo}: {move_result.get('error', 'Erro desconhecido')}")
 
             print("\n🎉 Arquivos tipo: {tipo} baixados com sucesso!")
-    # pegar erro, dar print e pausar 60 segundos
-    except Exception as e:
-        print(f"❌ Erro: {e}")
-        raise e
     finally:
         rpa.close()
 
