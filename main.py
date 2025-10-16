@@ -169,7 +169,12 @@ def process_empresa(empresa, first_time):
                     print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
                     continue
 
-                request_result = rpa.select_dates(range_dates=year_dates)
+                if tipo == "sped_fiscal":
+                    range_dates = None
+                else:
+                    range_dates = year_dates
+
+                request_result = rpa.select_dates(range_dates)
 
                 if request_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na solicitação dos arquivos para tipo {tipo}: {request_result.value if request_result else 'Resultado nulo'}")
