@@ -9,7 +9,7 @@ from text_formatter import TextFormatter
 
 from csv_manager import ler_arquivo_csv
 
-def for_each_with_retry(items, process_func, max_retries=2, retry_delay=300, item_name_func=None):
+def for_each_with_retry(items, process_func, max_retries=1, retry_delay=5, item_name_func=None):
     """
     Estrutura de repetição genérica com:
     - Retry automático em caso de erro
@@ -205,7 +205,6 @@ def process_empresa(empresa, first_time):
         
     finally:
         rpa.close()
-        time.sleep(2)
 
 def main():
     empresas = ler_arquivo_csv("empresas")
@@ -229,8 +228,8 @@ def main():
     for_each_with_retry(
         items=empresas_filtradas,
         process_func=process_empresa,
-        max_retries=2,
-        retry_delay=10,
+        max_retries=1,
+        retry_delay=5,
         item_name_func=get_empresa_name
     )
     

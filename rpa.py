@@ -339,6 +339,8 @@ class RPA:
     
     def init(self) -> RPAResult:
         print("\nAbrindo o ReceitanetBX...")
+        time.sleep(2)
+
         wait_result = self._wait_for_image("icon.png", "botoes", timeout=10)
         
         if wait_result == RPAResult.SUCCESS:
@@ -348,7 +350,7 @@ class RPA:
             return wait_result
         
     def close(self) -> None:
-        time.sleep(5)
+        time.sleep(2)
         print("\nFechando o ReceitanetBX...")
         
         # Tenta múltiplas estratégias para fechar o programa
@@ -378,6 +380,8 @@ class RPA:
         return self._single_click_image(f"{certificado}.png", "certificados")
         
     def trocarPerfil(self, cnpj, first_time) -> RPAResult:
+        self.set_confidence(0.9)
+
         botao_entrar = self._wait_for_image("entrar.png", "botoes", timeout=5)
 
         if botao_entrar != RPAResult.SUCCESS:
