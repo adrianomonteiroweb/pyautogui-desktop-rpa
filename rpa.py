@@ -553,6 +553,11 @@ class RPA:
         self._selectOption("combo_sistema.png", "opcao_sped_contabil.png", "comboboxes/sistema")
         self._selectOption("combo_arquivo.png", "opcao_escrituracao_contabil_digital.png", "comboboxes/arquivo")
 
+        json_manager = JSONManager()
+        period = json_manager.get_params().get("period")
+        start_date = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
+        end_date = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
+
         print(f"Período: {start_date} a {end_date}")
         PyAutoGui.write(start_date, interval=0.1)
         PyAutoGui.press("Tab")
@@ -600,6 +605,34 @@ class RPA:
             print(f"⚠ Tipo de pesquisa não reconhecido: {tipo}")
             return RPAResult.IMAGE_NOT_FOUND
 
+    def _find_data_inicio_column(self, silent: bool = False) -> RPAResult:
+        """
+        Localiza a coluna "Data Início", tentando primeiro a versão normal e depois a cortada.
+        
+        Returns:
+            RPAResult: SUCCESS se encontrou a coluna, caso contrário retorna erro apropriado
+        """
+        # Tenta primeiro clicar na coluna normal
+        result = self._single_click_image("coluna_data_inicio.png", "tabelas", silent=True)
+        
+        if result == RPAResult.SUCCESS:
+            if not silent:
+                print("✅ Coluna 'Data Início' normal encontrada e clicada")
+            return RPAResult.SUCCESS
+        
+        # Se não encontrou a normal, tenta a versão cortada
+        result = self._single_click_image("coluna_data_inicio_cortada.png", "tabelas", silent=True)
+        
+        if result == RPAResult.SUCCESS:
+            if not silent:
+                print("✅ Coluna 'Data Início' cortada encontrada e clicada")
+            return RPAResult.SUCCESS
+        
+        if not silent:
+            print("✗ Nenhuma versão da coluna 'Data Início' foi encontrada (nem normal nem cortada)")
+        
+        return RPAResult.IMAGE_NOT_FOUND
+
     def _single_click_image_filtered_by_column(self, image_filename: str, alias: str = "", silent: bool = False) -> RPAResult:
         """
         Método que filtra por range de 47 pixels e posição Y com range limitado.
@@ -616,21 +649,28 @@ class RPA:
         # Range máximo de Y para buscar a próxima data (2 linhas = ~36 pixels)
         max_y_range = 36
         
-        # Localiza a coluna de referência
+        # Localiza a coluna de referência - tenta primeiro a imagem normal, depois a cortada
         column_image_path = self._get_image_path("tabelas", "coluna_data_inicio.png")
+        column_image_path_cortada = self._get_image_path("tabelas", "coluna_data_inicio_cortada.png")
         
-        if not self._validate_image_file(column_image_path):
+        if not self._validate_image_file(column_image_path) and not self._validate_image_file(column_image_path_cortada):
             if not silent:
-                print(f"✗ Arquivo de referência não encontrado: {column_image_path}")
+                print(f"✗ Nenhum arquivo de referência encontrado: {column_image_path} ou {column_image_path_cortada}")
             return RPAResult.FILE_NOT_EXISTS
         
         try:
-            # Busca a posição da coluna de referência
+            # Busca a posição da coluna de referência - tenta primeiro a imagem normal
             column_locations = self._find_all_image_locations(column_image_path)
+            
+            # Se não encontrou a imagem normal, tenta a versão cortada
+            if not column_locations and self._validate_image_file(column_image_path_cortada):
+                if not silent:
+                    print("⚠ Coluna normal não encontrada, tentando versão cortada...")
+                column_locations = self._find_all_image_locations(column_image_path_cortada)
             
             if not column_locations:
                 if not silent:
-                    print("✗ Coluna de referência não encontrada na tela")
+                    print("✗ Coluna de referência não encontrada na tela (nem normal nem cortada)")
                 return RPAResult.IMAGE_NOT_FOUND
             
             # Define o range de X (±47 pixels da coluna)
@@ -750,7 +790,12 @@ class RPA:
             # Reseta o estado de posição Y para começar do início
             self.reset_click_position()
             
-            self._single_click_image("coluna_data_inicio.png", "tabelas")
+            # Tenta clicar na coluna de data início (normal ou cortada)
+            column_result = self._find_data_inicio_column()
+            if column_result != RPAResult.SUCCESS:
+                print("✗ Não foi possível localizar a coluna 'Data Início'")
+                return column_result
+            
             time.sleep(1)
             
             print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas...")
