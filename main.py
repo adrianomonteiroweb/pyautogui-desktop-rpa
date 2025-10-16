@@ -118,6 +118,8 @@ def process_empresa(empresa, first_time):
             print(f"❌ Falha na seleção da empresa: {empresa_result.value if empresa_result else 'Resultado nulo'}")
             raise Exception(f"Falha na seleção da empresa: {empresa_result.value}")
         
+        date_formatter = DateFormatter()
+        
         for tipo in tipos_habilitados:
             print(f"  📋 Processando tipo: {tipo}")
 
@@ -127,18 +129,17 @@ def process_empresa(empresa, first_time):
             start_date_iso = period["start_date"]
             end_date_iso = period["end_date"]
             
+            
             from datetime import datetime
             start_date_formatted = datetime.strptime(start_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
             end_date_formatted = datetime.strptime(end_date_iso, "%Y-%m-%d").strftime("%d/%m/%Y")
 
             if tipo != "sped_fiscal":
-                range_dates = DateFormatter.generate_monthly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
+                range_dates = date_formatter.generate_monthly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
             else:
-                range_dates = None
-
-                range_dates = [
-                    DateFormatter.generate_yearly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
-                ]
+                # Para sped_fiscal, geramos apenas as datas de início de cada ano
+                yearly_dates = date_formatter.generate_yearly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
+                range_dates = [yearly_dates]
 
 
             for i, year_dates in enumerate(range_dates):
@@ -148,7 +149,7 @@ def process_empresa(empresa, first_time):
                 
                 # Calcula o último dia do mês (ex: "31/10/2025")
 
-                end_date = DateFormatter.get_last_day_of_month(last_month_start, input_format="dd/mm/yyyy")
+                end_date = date_formatter.get_last_day_of_month(last_month_start, input_format="dd/mm/yyyy")
 
                 # Se end_date for superior à data atual, ajusta para data atual
                 from datetime import datetime
@@ -199,10 +200,13 @@ def process_empresa(empresa, first_time):
                     print(f"  ✅ {move_result['message']}")
                 else:
                     print(f"  ❌ Erro ao mover arquivos do tipo {tipo}: {move_result.get('error', 'Erro desconhecido')}")
-        
-        print("\n🎉 Automação concluída com sucesso!")
-        return "Success"
-        
+
+            print("\n🎉 Arquivos tipo: {tipo} baixados com sucesso!")
+    # pegar erro, dar print e pausar 60 segundos
+    except Exception as e:
+        print(f"❌ Erro: {e}")
+        time.sleep(60)
+
     finally:
         rpa.close()
 

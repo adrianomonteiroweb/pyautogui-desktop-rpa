@@ -223,6 +223,67 @@ class DateFormatter:
             else:
                 raise e
 
+    @staticmethod
+    def generate_yearly_start_dates(start_date: str, end_date: str, format_type: str = "dd/mm/yyyy") -> list:
+        """
+        Gera uma lista com as datas de início de cada ano dentro do range especificado.
+        
+        Args:
+            start_date (str): Data de início no formato DD/MM/YYYY (ex: "01/01/2023")
+            end_date (str): Data de fim no formato DD/MM/YYYY (ex: "31/12/2024")
+            format_type (str): Formato de saída das datas (padrão: "dd/mm/yyyy")
+                             - "dd/mm/yyyy": 01/01/2023
+                             - "ddmmyyyy": 01012023
+                             - "iso": 2023-01-01
+            
+        Returns:
+            list: Lista com a data de início de cada ano
+            
+        Example:
+            Input: start_date="01/06/2023", end_date="31/12/2024"
+            Output: ["01/01/2023", "01/01/2024"]
+            
+        Raises:
+            ValueError: Se as datas não estiverem no formato correto ou se start_date > end_date
+        """
+        try:
+            # Parse das datas de entrada (formato DD/MM/YYYY)
+            start_dt = datetime.strptime(start_date, "%d/%m/%Y")
+            end_dt = datetime.strptime(end_date, "%d/%m/%Y")
+            
+            # Validação: data inicial deve ser menor ou igual à data final
+            if start_dt > end_dt:
+                raise ValueError(f"Data inicial ({start_date}) deve ser menor ou igual à data final ({end_date})")
+            
+            yearly_dates = []
+            current_year = start_dt.year
+            
+            # Processa cada ano no período
+            while current_year <= end_dt.year:
+                # Sempre pega o primeiro dia do ano
+                year_start_date = datetime(current_year, 1, 1)
+                
+                # Formata conforme o tipo solicitado
+                if format_type.lower() == "dd/mm/yyyy":
+                    formatted_date = year_start_date.strftime("%d/%m/%Y")
+                elif format_type.lower() == "ddmmyyyy":
+                    formatted_date = year_start_date.strftime("%d%m%Y")
+                elif format_type.lower() == "iso":
+                    formatted_date = year_start_date.strftime("%Y-%m-%d")
+                else:
+                    raise ValueError(f"Formato não suportado: {format_type}. Suportados: 'dd/mm/yyyy', 'ddmmyyyy', 'iso'")
+                
+                yearly_dates.append(formatted_date)
+                current_year += 1
+            
+            return yearly_dates
+            
+        except ValueError as e:
+            if "does not match format" in str(e):
+                raise ValueError(f"Formato de data inválido. Use DD/MM/YYYY (ex: 01/01/2023)") from e
+            else:
+                raise e
+
 
 # Funções de conveniência para uso direto
 def format_date_for_input(iso_date: str) -> str:
