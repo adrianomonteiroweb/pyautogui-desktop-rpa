@@ -667,8 +667,8 @@ class RPA:
                 print(f"LOCATIONS: {len(valid_locations)}")
                 print(f"VALID LOCATIONS: {valid_locations}")
             
-            # Seleciona a posição válida (maior Y - última da lista ordenada)
-            selected_location, selected_center = valid_locations[-1]
+            # Seleciona a posição válida
+            selected_location, selected_center = valid_locations[0]
             
             if not silent:
                 print(f"SELECTED LOCATION: {selected_location}, CENTER: {selected_center}")
@@ -697,8 +697,8 @@ class RPA:
             
             self._single_click_image("coluna_data_inicio.png", "tabelas")
             time.sleep(1)
-            self._single_click_image("coluna_transmissao.png", "tabelas")
-            time.sleep(1)
+            # self._single_click_image("coluna_transmissao.png", "tabelas")
+            # time.sleep(1)
             
             print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas...")
             
@@ -723,6 +723,12 @@ class RPA:
                     dates_clicked += 1
 
                     print(f"    ✅ Data {date} clicada com sucesso.")
+
+                # 5 vezes clicar keydown para garantir que a linha foi selecionada
+                for _ in range(5):
+                    PyAutoGui.press("down")
+                    time.sleep(0.1)
+
                 else:
                     print(f"    ⚠️ Data {date} não encontrada.")
             
