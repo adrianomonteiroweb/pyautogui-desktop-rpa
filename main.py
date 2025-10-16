@@ -112,9 +112,6 @@ def process_empresa(empresa, first_time):
             print(f"❌ Falha na inicialização: {init_result.value if init_result else 'Resultado nulo'}")
             raise Exception(f"Falha na inicialização: {init_result.value}")
         
-        # Após abrir a aplicação, aumenta o confidence para cliques mais precisos
-        rpa.set_confidence(0.95)
-        
         empresa_result = rpa.trocarPerfil(empresa['cnpj'], first_time=first_time)
 
         if empresa_result != RPAResult.SUCCESS:
@@ -146,12 +143,22 @@ def process_empresa(empresa, first_time):
 
             for i, year_dates in enumerate(range_dates):
                 is_first_iteration = (i == 0)
-
                 # A data inicial do último mês (ex: "01/10/2025")
                 last_month_start = year_dates[year_dates.__len__() - 1]
                 
                 # Calcula o último dia do mês (ex: "31/10/2025")
+
                 end_date = DateFormatter.get_last_day_of_month(last_month_start, input_format="dd/mm/yyyy")
+                
+                # Se end_date for superior à data atual, ajusta para data atual
+                from datetime import datetime
+
+                data_atual = datetime.now().strftime("%d/%m/%Y")
+                end_date_dt = datetime.strptime(end_date, "%d/%m/%Y")
+                data_atual_dt = datetime.strptime(data_atual, "%d/%m/%Y")
+
+                if end_date_dt > data_atual_dt:
+                    end_date = data_atual
 
                 search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=end_date, is_first_iteration=is_first_iteration)
 

@@ -8,8 +8,6 @@ from enum import Enum
 
 from json_manager import JSONManager
 from date_formatter import DateFormatter
-from easyocr_manager import EasyOCRManager
-
 
 class RPAResult(Enum):
     SUCCESS = "success"
@@ -420,15 +418,18 @@ class RPA:
         print("✗ Nenhuma das imagens foi encontrada: entrar.png ou trocar_perfil.png")
         return RPAResult.IMAGE_NOT_FOUND
 
-    def _searchSPED(self, start_date, end_date) -> RPAResult:
-        self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
-        self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
+    def _searchSPED(self, start_date, end_date, is_first_iteration) -> RPAResult:
+        if is_first_iteration:
+            self._selectOption("combo_arquivo.png", "opcao_escrituracao.png", "comboboxes/arquivo")
+            self._selectOption("combo_pesquisa.png", "opcao_periodo_escrituracao.png", "comboboxes/pesquisa")
 
         print(f"Buscando arquivos no período entre {start_date} e {end_date}...")
 
         start_date = start_date.replace("/", "")
         end_date = end_date.replace("/", "")
-        
+
+        self._single_click_image("input_data_inicio.png", "inputs")
+
         PyAutoGui.write(start_date, interval=0.1)
         PyAutoGui.press("Tab")
         PyAutoGui.write(end_date, interval=0.1)
@@ -520,7 +521,9 @@ class RPA:
 
         return self._dispatch_message_if_exists()
 
-    def search(self, tipo, start_date, end_date, is_first_iteration=True) -> RPAResult:
+    def search(self, tipo, start_date, end_date, is_first_iteration) -> RPAResult:
+        self.set_confidence(0.9)
+        
         if is_first_iteration:
             self._double_click_image("maximizar.png", "botoes")
             time.sleep(2)
@@ -529,9 +532,10 @@ class RPA:
             print("\nPesquisando arquivos de SPED Contribuições...")
             self._double_click_image("lupa.png", "botoes")
 
-            self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
+            if is_first_iteration:
+                self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
 
-            return self._searchSPED(start_date, end_date)
+            return self._searchSPED(start_date, end_date, is_first_iteration)
         elif tipo == "sped_ecf":
             print("\nPesquisando arquivos de SPED ECF...")
             self._double_click_image("lupa.png", "botoes")
@@ -689,6 +693,8 @@ class RPA:
 
 
     def select_dates(self, range_dates) -> RPAResult:
+        self.set_confidence(0.98)
+
         print("\nSelecionando arquivos...")
         
         if range_dates:
@@ -697,17 +703,15 @@ class RPA:
             
             self._single_click_image("coluna_data_inicio.png", "tabelas")
             time.sleep(1)
-            # self._single_click_image("coluna_transmissao.png", "tabelas")
-            # time.sleep(1)
             
             print(f"\n🎯 Clicando em {len(range_dates)} datas solicitadas...")
             
             dates_clicked = 0
 
-            for date in range_dates:
+            for idx, date in enumerate(range_dates):
                 if dates_clicked >= len(range_dates):
                     break
-                    
+
                 print(f"  📅 Clicando na data: {date}")
 
                 month = int(date.split("/")[1])
@@ -716,19 +720,20 @@ class RPA:
                 result = self._single_click_image_filtered_by_column(period_file, "tabelas")
 
                 if result == RPAResult.SUCCESS:
-                    time.sleep(1)
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
-                    time.sleep(1)
-
                     dates_clicked += 1
-
                     print(f"    ✅ Data {date} clicada com sucesso.")
-
-                # 5 vezes clicar keydown para garantir que a linha foi selecionada
-                for _ in range(5):
-                    PyAutoGui.press("down")
-                    time.sleep(0.1)
-
+                    
+                    # Pressiona DOWN 15 vezes a cada 5 clicks bem-sucedidos
+                    if dates_clicked % 5 == 0:
+                        print(f"    🔽 Navegando para baixo após {dates_clicked} clicks bem-sucedidos (15x DOWN)...")
+                        for _ in range(15):
+                            PyAutoGui.press("down")
+                            time.sleep(0.1)
+                        
+                        # Reset da posição Y para encontrar as novas datas visíveis após navegação
+                        self.reset_click_position()
+                        print(f"    🔄 Posição Y resetada para buscar novas datas visíveis")
                 else:
                     print(f"    ⚠️ Data {date} não encontrada.")
             
