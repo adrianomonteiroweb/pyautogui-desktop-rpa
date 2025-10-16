@@ -475,6 +475,26 @@ class RPA:
                     raise Exception("Unfinish: " + message)
             except:
                 pass
+
+        # Verifica modal de erro de procuração eletrônica
+        image_path = self._get_image_path("modais", "modal_nao_existe_procuracao.png")
+        if self._validate_image_file(image_path):
+            try:
+                location = PyAutoGui.locateOnScreen(image_path, confidence=self.config.confidence)
+                if location is not None:
+                    message = "❌ Erro de procuração eletrônica detectado. Tentando novamente..."
+                    print(message)
+                    time.sleep(1)
+                    self._double_click_image("ok.png", "botoes", silent=True)
+                    PyAutoGui.press("Enter")
+                    # Lança exceção para que o for_each_with_retry tente novamente
+                    raise Exception(f"Erro de procuração eletrônica: {message}")
+            except Exception as e:
+                # Se a exceção já foi nossa (do modal), re-lança para o retry
+                if "Erro de procuração eletrônica" in str(e):
+                    raise e
+                # Se foi erro ao detectar o modal, ignora
+                pass
                 
         return RPAResult.SUCCESS
         
