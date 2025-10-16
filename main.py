@@ -149,7 +149,7 @@ def process_empresa(empresa, first_time):
                 # Calcula o último dia do mês (ex: "31/10/2025")
 
                 end_date = DateFormatter.get_last_day_of_month(last_month_start, input_format="dd/mm/yyyy")
-                
+
                 # Se end_date for superior à data atual, ajusta para data atual
                 from datetime import datetime
 
@@ -160,7 +160,9 @@ def process_empresa(empresa, first_time):
                 if end_date_dt > data_atual_dt:
                     end_date = data_atual
 
-                search_result = rpa.search(tipo=tipo, start_date=year_dates[0], end_date=end_date, is_first_iteration=is_first_iteration)
+                start_date=year_dates[0]
+
+                search_result = rpa.search(tipo=tipo, start_date=start_date, end_date=end_date, is_first_iteration=is_first_iteration)
 
                 if search_result != RPAResult.SUCCESS:
                     print(f"❌ Falha na pesquisa do tipo {tipo}: {search_result.value if search_result else 'Resultado nulo'}")
@@ -186,12 +188,9 @@ def process_empresa(empresa, first_time):
                 
                 print(f"  📁 Movendo arquivos do tipo {tipo}...")
 
-                start_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["start_date"])
-                end_date_ddmmyyyy = DateFormatter.iso_to_ddmmyyyy(period["end_date"])
-                
                 empresa_data = empresa.copy()
-                empresa_data['data_inicial'] = start_date_ddmmyyyy
-                empresa_data['data_final'] = end_date_ddmmyyyy
+                empresa_data['data_inicial'] = start_date.replace('/', '')
+                empresa_data['data_final'] = end_date.replace('/', '')
                 empresa_data['tipo'] = tipo
                 
                 move_result = files_manager.move_files(data=empresa_data)
@@ -231,7 +230,7 @@ def main():
         items=empresas_filtradas,
         process_func=process_empresa,
         max_retries=2,
-        retry_delay=300,
+        retry_delay=10,
         item_name_func=get_empresa_name
     )
     

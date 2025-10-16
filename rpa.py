@@ -1,8 +1,6 @@
-from datetime import date
 import pyautogui as PyAutoGui
 import time
 import os
-from typing import Tuple
 from dataclasses import dataclass
 from enum import Enum
 
@@ -757,12 +755,16 @@ class RPA:
         print("\nBaixando arquivos...")
 
         self._single_click_image("acompanhamento.png", "botoes")
+        time.sleep(1)
+
+        self._single_click_image("tab_ver_pedidos.png", "tabs")
+        time.sleep(1)
+
         self._single_click_image("ultima_solicitacao.png", "tabelas")
-        time.sleep(2)
+        time.sleep(3)
         self._single_click_image("checkbox_todos.png", "checkboxes")
         time.sleep(3)
         self._single_click_image("baixar.png", "botoes")
-        time.sleep(3)
 
         downloads_concluidos = self._wait_for_image("fila_de_downloads.png", "tabelas", timeout=60 * 5)
 
