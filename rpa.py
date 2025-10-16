@@ -350,18 +350,22 @@ class RPA:
             return wait_result
         
     def close(self) -> None:
-        time.sleep(2)
+        self.set_confidence(0.9)
+
+        time.sleep(5)
+        
         print("\nFechando o ReceitanetBX...")
+
         
         # Tenta múltiplas estratégias para fechar o programa
         close_buttons = [
-            ("sair.png", "botoes"),
             ("fechar.png", "botoes"),
             ("fechar2.png", "botoes"),
+            ("sair.png", "botoes"),
         ]
         
         for button_file, button_alias in close_buttons:
-            result = self._single_click_image(button_file, button_alias, silent=True)
+            result = self._double_click_image(button_file, button_alias, silent=True)
             
             if result == RPAResult.SUCCESS:
                 print(f"✅ ReceitanetBX fechado usando: {button_file}")
@@ -484,9 +488,10 @@ class RPA:
                 if location is not None:
                     message = "❌ Erro de procuração eletrônica detectado. Tentando novamente..."
                     print(message)
-                    time.sleep(1)
+                    time.sleep(5)
                     self._double_click_image("ok.png", "botoes", silent=True)
                     PyAutoGui.press("Enter")
+                    PyAutoGui.press("Esc")
                     # Lança exceção para que o for_each_with_retry tente novamente
                     raise Exception(f"Erro de procuração eletrônica: {message}")
             except Exception as e:

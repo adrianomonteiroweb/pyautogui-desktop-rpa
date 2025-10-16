@@ -205,8 +205,7 @@ def process_empresa(empresa, first_time):
     # pegar erro, dar print e pausar 60 segundos
     except Exception as e:
         print(f"❌ Erro: {e}")
-        time.sleep(60)
-
+        raise e
     finally:
         rpa.close()
 
