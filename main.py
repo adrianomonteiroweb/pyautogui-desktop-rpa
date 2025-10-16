@@ -231,8 +231,8 @@ def main():
     for_each_with_retry(
         items=empresas_filtradas,
         process_func=process_empresa,
-        max_retries=1,
-        retry_delay=5,
+        max_retries=0,
+        retry_delay=2,
         item_name_func=get_empresa_name
     )
     

@@ -393,15 +393,9 @@ class RPA:
 
         self._selecionar_certificado()
 
-        if first_time:
-            self._single_click_image("combo_perfil_contribuinte.png", "comboboxes/perfil")
-            self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
-        else:
-            self._single_click_image("combo_perfil_procurador.png", "comboboxes/perfil")
-            self._double_click_image("opcao_receita_federal.png", "comboboxes/perfil")
-            time.sleep(1)
-            self._single_click_image("combo_perfil_receita_federal.png", "comboboxes/perfil")
-            self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
+        self._single_click_image("combo_perfil_contribuinte.png", "comboboxes/perfil")
+        self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
+        
 
         self._selectOption("combo_tipo_doc.png", "opcao_cnpj.png", "comboboxes/tipo_doc")
         self._single_click_image("cnpj_input.png", "inputs")
