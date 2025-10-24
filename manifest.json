@@ -1,0 +1,123 @@
+{
+  "manifest_version": 1,
+  "id": "76b52259-564d-4604-9f0b-b57a02d071b5",
+  "name": "Baixar arquivos SPED no Receitanet BX",
+  "version": "1.0.0",
+  "description": "Baixa arquivos SPED contribuições, fiscal, ECF e contábil no Receitanet BX.",
+  "author": {
+    "name": "Solfy Tech",
+    "email": "dev@solfy.tech",
+    "site_url": "https://solfy.tech",
+    "support_url": "https://suporte.solfy.tech"
+  },
+  "monitor": {
+    "display": false
+  },
+  "report": {
+    "display": true
+  },
+  "icons": {
+    "150": "images/icon-150.jpg"
+  },
+
+  "datasets": [
+    {
+      "id": "empresas",
+      "name": "Empresas",
+      "description": "Lista de empresas para consulta no Receitanet BX.",
+      "schema": {
+        "properties": {
+          "cpf_cnpj": {
+            "type": "string",
+            "title": "CNPJ/CPF"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          }
+        }
+      }
+    }
+  ],
+
+  "forms": {
+    "settings": {
+      "schema": {
+        "properties": {
+          "arquivos": {
+            "required": ["destino", "nome"],
+            "type": "object",
+            "title": "Arquivos",
+            "properties": {
+              "destino": {
+                "type": "string",
+                "title": "Diretório de destino dos arquivos"
+              },
+              "nome": {
+                "type": "string",
+                "title": "Regra para nome dos arquivos"
+              }
+            }
+          }
+        }
+      }
+    },
+    "params": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "object",
+            "title": "Período de consulta",
+            "properties": {
+              "start_date": {
+                "type": "string",
+                "title": "Data inicial",
+                "format": "date"
+              },
+              "end_date": {
+                "type": "string",
+                "title": "Data final",
+                "format": "date"
+              }
+            }
+          },
+          "cnpj": {
+            "type": "string",
+            "title": "Empresa (CNPJ/CPF) - deixe vazio para todas",
+            "default": ""
+          },
+          "types": {
+            "type": "object",
+            "title": "Tipos de SPED para baixar",
+            "properties": {
+              "sped_contribuicoes": {
+                "type": "boolean",
+                "title": "SPED Contribuições",
+                "default": true
+              },
+              "sped_fiscal": {
+                "type": "boolean",
+                "title": "SPED Fiscal",
+                "default": false
+              },
+              "sped_ecf": {
+                "type": "boolean",
+                "title": "SPED ECF",
+                "default": false
+              },
+              "sped_contabil": {
+                "type": "boolean",
+                "title": "SPED Contábil",
+                "default": false
+              }
+            }
+          }
+        }
+      },
+      "ui_schema": {
+        "ui:order": ["period", "cnpj", "types"]
+      }
+    }
+  }
+}

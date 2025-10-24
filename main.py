@@ -6,7 +6,13 @@ from utils import for_each
 from receitanetbx_bot import executar_receitanetbx
 
 def main():
-    empresas = ler_arquivo_csv("empresas")
+    empresas_result = ler_arquivo_csv("empresas")
+
+    if not empresas_result or not empresas_result.get('dados'):
+        print("Nenhuma empresa encontrada no CSV.")
+        return
+    
+    empresas = empresas_result['dados']
     
     json_manager = JSONManager()
     cnpj = json_manager.get_params().get("cnpj")
