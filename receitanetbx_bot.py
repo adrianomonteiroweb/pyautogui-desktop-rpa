@@ -101,10 +101,8 @@ def executar_receitanetbx(empresa, first_time):
                 print(f"  📁 Movendo arquivos do tipo {tipo}...")
 
                 empresa_data = empresa.copy()
-                empresa_data['data_inicial'] = start_date.replace('/', '')
-                empresa_data['data_final'] = end_date.replace('/', '')
                 empresa_data['tipo'] = tipo
-                
+                empresa_data['periodo'] = end_date.split('/')[-1]
                 move_result = files_manager.move_files(data=empresa_data)
                 
                 if move_result["success"]:
