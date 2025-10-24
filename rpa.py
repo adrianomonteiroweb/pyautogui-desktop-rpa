@@ -62,10 +62,8 @@ class RPA:
     
     def _locate_and_double_click_image(self, image_path: str, description: str, silent: bool = False) -> RPAResult:
         try:
-            # Tenta primeiro com confidence padrão
             all_locations = self._find_all_image_locations(image_path)
             
-            # Se não encontrar, tenta com confidence menor
             if not all_locations and self.config.confidence > 0.6:
                 if not silent:
                     print(f"⚠ Tentando com menor precisão para {description}...")
@@ -103,10 +101,8 @@ class RPA:
 
     def _locate_and_single_click_image(self, image_path: str, description: str, silent: bool = False) -> RPAResult:
         try:
-            # Tenta primeiro com confidence padrão
             all_locations = self._find_all_image_locations(image_path)
             
-            # Se não encontrar, tenta com confidence menor
             if not all_locations and self.config.confidence > 0.6:
                 if not silent:
                     print(f"⚠ Tentando com menor precisão para {description}...")
@@ -202,21 +198,6 @@ class RPA:
     def _single_click_image_filter_positions(self, image_filename: str, min_x: int = None, max_x: int = None, 
                                            min_y: int = None, max_y: int = None, alias: str = "", 
                                            silent: bool = False) -> RPAResult:
-        """
-        Clica na primeira ocorrência da imagem que estiver dentro dos ranges de coordenadas especificados.
-        
-        Args:
-            image_filename: Nome do arquivo de imagem
-            min_x: Posição X mínima (None = sem limite mínimo)
-            max_x: Posição X máxima (None = sem limite máximo)
-            min_y: Posição Y mínima (None = sem limite mínimo)
-            max_y: Posição Y máxima (None = sem limite máximo)
-            alias: Pasta da imagem
-            silent: Se True, suprime mensagens de debug
-            
-        Returns:
-            RPAResult: Resultado da operação
-        """
         image_path = self._get_image_path(alias, image_filename)
 
         if not self._validate_image_file(image_path):
@@ -225,10 +206,8 @@ class RPA:
             return RPAResult.FILE_NOT_EXISTS
 
         try:
-            # Busca todas as ocorrências da imagem
             all_locations = self._find_all_image_locations(image_path)
             
-            # Se não encontrar com confidence padrão, tenta com menor
             if not all_locations and self.config.confidence > 0.6:
                 if not silent:
                     print(f"⚠ Tentando com menor precisão para {image_filename}...")
@@ -239,19 +218,17 @@ class RPA:
                     print(f"✗ Não foi possível localizar {image_filename}")
                 return RPAResult.IMAGE_NOT_FOUND
             
-            # Filtra as localizações que estão dentro dos ranges especificados
             filtered_locations = []
+
             for location in all_locations:
                 center = PyAutoGui.center(location)
                 x, y = center
                 
-                # Verifica se está dentro dos limites X
                 if min_x is not None and x < min_x:
                     continue
                 if max_x is not None and x > max_x:
                     continue
                     
-                # Verifica se está dentro dos limites Y
                 if min_y is not None and y < min_y:
                     continue
                 if max_y is not None and y > max_y:
@@ -269,7 +246,6 @@ class RPA:
                         print(f"    {i}. Posição: {center}")
                 return RPAResult.IMAGE_NOT_FOUND
             
-            # Clica na primeira ocorrência dentro dos ranges
             location, center = filtered_locations[0]
             
             if not silent:
@@ -355,8 +331,6 @@ class RPA:
         
         print("\nFechando o ReceitanetBX...")
 
-        
-        # Tenta múltiplas estratégias para fechar o programa
         close_buttons = [
             ("fechar.png", "botoes"),
             ("fechar2.png", "botoes"),
@@ -393,7 +367,7 @@ class RPA:
         self._selecionar_certificado()
 
         self._single_click_image("combo_perfil_contribuinte.png", "comboboxes/perfil")
-        self._single_click_image("opcao_procurador.png", "comboboxes/perfil")
+        self._single_click_image("opcao_procurador.png", "comboboxes/perfil", silent=True)
         
 
         self._selectOption("combo_tipo_doc.png", "opcao_cnpj.png", "comboboxes/tipo_doc")
@@ -401,19 +375,16 @@ class RPA:
         
         PyAutoGui.write(cnpj, interval=0.1)
 
-        # Tenta encontrar primeiro o botão "entrar"
         botao_entrar = self._wait_for_image("entrar.png", "botoes", timeout=5)
 
         if botao_entrar == RPAResult.SUCCESS:
             return self._single_click_image("entrar.png", "botoes")
         
-        # Se não encontrou "entrar", tenta encontrar "trocar_perfil"
         botao_trocar_perfil = self._wait_for_image("trocar_perfil.png", "botoes", timeout=5)
         
         if botao_trocar_perfil == RPAResult.SUCCESS:
             return self._single_click_image("trocar_perfil.png", "botoes")
         
-        # Se nenhuma das duas imagens foi encontrada, retorna erro
         print("✗ Nenhuma das imagens foi encontrada: entrar.png ou trocar_perfil.png")
         return RPAResult.IMAGE_NOT_FOUND
 
@@ -439,10 +410,8 @@ class RPA:
         try:
             return self._dispatch_message_if_exists()
         except Exception as e:
-            # Re-lança exceções Unfinish para serem tratadas pelo for_each_with_retry
             if str(e).startswith("Unfinish:"):
                 raise e
-            # Para outras exceções, retorna erro
             return RPAResult.ERROR
         
     def _dispatch_message_if_exists(self) -> RPAResult:
@@ -540,10 +509,8 @@ class RPA:
         try:
             return self._dispatch_message_if_exists()
         except Exception as e:
-            # Re-lança exceções Unfinish para serem tratadas pelo for_each_with_retry
             if str(e).startswith("Unfinish:"):
                 raise e
-            # Para outras exceções, retorna erro
             return RPAResult.ERROR
 
     def _searchSPEDContabil(self, start_date, end_date) -> RPAResult:
@@ -569,10 +536,8 @@ class RPA:
         try:
             return self._dispatch_message_if_exists()
         except Exception as e:
-            # Re-lança exceções Unfinish para serem tratadas pelo for_each_with_retry
             if str(e).startswith("Unfinish:"):
                 raise e
-            # Para outras exceções, retorna erro
             return RPAResult.ERROR
 
     def search(self, tipo, start_date, end_date, is_first_iteration) -> RPAResult:
@@ -606,13 +571,6 @@ class RPA:
             return RPAResult.IMAGE_NOT_FOUND
 
     def _find_data_inicio_column(self, silent: bool = False) -> RPAResult:
-        """
-        Localiza a coluna "Data Início", tentando primeiro a versão normal e depois a cortada.
-        
-        Returns:
-            RPAResult: SUCCESS se encontrou a coluna, caso contrário retorna erro apropriado
-        """
-        # Tenta primeiro clicar na coluna normal
         result = self._single_click_image("coluna_data_inicio.png", "tabelas", silent=True)
         
         if result == RPAResult.SUCCESS:
@@ -620,7 +578,6 @@ class RPA:
                 print("✅ Coluna 'Data Início' normal encontrada e clicada")
             return RPAResult.SUCCESS
         
-        # Se não encontrou a normal, tenta a versão cortada
         result = self._single_click_image("coluna_data_inicio_cortada.png", "tabelas", silent=True)
         
         if result == RPAResult.SUCCESS:
@@ -634,22 +591,8 @@ class RPA:
         return RPAResult.IMAGE_NOT_FOUND
 
     def _single_click_image_filtered_by_column(self, image_filename: str, alias: str = "", silent: bool = False) -> RPAResult:
-        """
-        Método que filtra por range de 47 pixels e posição Y com range limitado.
-        Baseado na lógica do teste test_click_dates_01_to_11.py
-        
-        Args:
-            image_filename: Nome do arquivo de imagem a ser clicado
-            alias: Pasta da imagem
-            silent: Se True, suprime mensagens de debug
-            
-        Returns:
-            RPAResult: Resultado da operação
-        """
-        # Range máximo de Y para buscar a próxima data (2 linhas = ~36 pixels)
         max_y_range = 36
         
-        # Localiza a coluna de referência - tenta primeiro a imagem normal, depois a cortada
         column_image_path = self._get_image_path("tabelas", "coluna_data_inicio.png")
         column_image_path_cortada = self._get_image_path("tabelas", "coluna_data_inicio_cortada.png")
         
@@ -659,10 +602,8 @@ class RPA:
             return RPAResult.FILE_NOT_EXISTS
         
         try:
-            # Busca a posição da coluna de referência - tenta primeiro a imagem normal
             column_locations = self._find_all_image_locations(column_image_path)
             
-            # Se não encontrou a imagem normal, tenta a versão cortada
             if not column_locations and self._validate_image_file(column_image_path_cortada):
                 if not silent:
                     print("⚠ Coluna normal não encontrada, tentando versão cortada...")
@@ -673,27 +614,23 @@ class RPA:
                     print("✗ Coluna de referência não encontrada na tela (nem normal nem cortada)")
                 return RPAResult.IMAGE_NOT_FOUND
             
-            # Define o range de X (±47 pixels da coluna)
             column_center = PyAutoGui.center(column_locations[0])
             min_x = column_center.x - 47
             max_x = column_center.x + 47
             
-            # Define o range de Y (baseado no último click)
             last_click_y = getattr(self, 'last_click_y', None)
             
             if last_click_y is None:
-                # Primeira busca - sem filtro Y
                 min_y = None
                 max_y = None
                 if not silent:
                     print(f"🎯 Buscando {image_filename} no range X: [{min_x} - {max_x}], Y: sem filtro (primeira busca)")
             else:
-                min_y = last_click_y + 1  # Mínimo: próximo pixel após o último click
-                max_y = last_click_y + max_y_range  # Máximo: até 2 linhas abaixo
+                min_y = last_click_y + 1
+                max_y = last_click_y + max_y_range
                 if not silent:
                     print(f"🎯 Buscando {image_filename} no range X: [{min_x} - {max_x}], Y: [{min_y} - {max_y}]")
             
-            # Busca a imagem da data
             image_path = self._get_image_path(alias, image_filename)
             
             if not self._validate_image_file(image_path):
@@ -701,7 +638,6 @@ class RPA:
                     print(f"✗ Arquivo de imagem não encontrado: {image_path}")
                 return RPAResult.FILE_NOT_EXISTS
             
-            # Encontra todas as ocorrências da imagem
             all_locations = self._find_all_image_locations(image_path)
             
             if not all_locations:
@@ -709,17 +645,14 @@ class RPA:
                     print(f"✗ Imagem {image_filename} não encontrada na tela")
                 return RPAResult.IMAGE_NOT_FOUND
             
-            # Filtra por range X e range Y (se definido)
             valid_locations = []
             for location in all_locations:
                 center = PyAutoGui.center(location)
                 x_valid = min_x <= center.x <= max_x
                 
                 if min_y is None and max_y is None:
-                    # Primeira busca - apenas filtro X
                     y_valid = True
                 else:
-                    # Buscas subsequentes - filtro X e Y
                     y_valid = min_y <= center.y <= max_y
                 
                 if x_valid and y_valid:
@@ -730,7 +663,6 @@ class RPA:
                     if not silent:
                         print(f"✗ Nenhuma ocorrência válida de {image_filename} encontrada no range Y: [{min_y} - {max_y}]")
                         
-                        # Tenta expandir o range Y para buscar mais longe (até 3 linhas)
                         expanded_max_y = last_click_y + (max_y_range * 2)
                         print(f"🔍 Tentando range expandido Y: [{min_y} - {expanded_max_y}]")
                     
@@ -753,24 +685,20 @@ class RPA:
                         print(f"✗ Nenhuma ocorrência válida de {image_filename} encontrada no range X")
                     return RPAResult.IMAGE_NOT_FOUND
             
-            # Ordena por Y (menor Y primeiro - mais acima na tela)
             valid_locations.sort(key=lambda item: item[1].y)
             
             if not silent:
                 print(f"LOCATIONS: {len(valid_locations)}")
                 print(f"VALID LOCATIONS: {valid_locations}")
             
-            # Seleciona a posição válida
             selected_location, selected_center = valid_locations[0]
             
             if not silent:
                 print(f"SELECTED LOCATION: {selected_location}, CENTER: {selected_center}")
                 print(f"✅ Clicando em {image_filename} na posição {selected_center}")
             
-            # Atualiza a posição Y do último click
             self.last_click_y = selected_center.y
             
-            # Executa o clique
             PyAutoGui.click(selected_center)
             return RPAResult.SUCCESS
             
@@ -787,11 +715,10 @@ class RPA:
         print("\nSelecionando arquivos...")
         
         if range_dates:
-            # Reseta o estado de posição Y para começar do início
             self.reset_click_position()
             
-            # Tenta clicar na coluna de data início (normal ou cortada)
-            column_result = self._find_data_inicio_column()
+            column_result = self._find_data_inicio_column(silent=True)
+
             if column_result != RPAResult.SUCCESS:
                 print("✗ Não foi possível localizar a coluna 'Data Início'")
                 return column_result
@@ -818,14 +745,12 @@ class RPA:
                     dates_clicked += 1
                     print(f"    ✅ Data {date} clicada com sucesso.")
                     
-                    # Pressiona DOWN 15 vezes a cada 5 clicks bem-sucedidos
                     if dates_clicked % 5 == 0:
                         print(f"    🔽 Navegando para baixo após {dates_clicked} clicks bem-sucedidos (15x DOWN)...")
                         for _ in range(15):
                             PyAutoGui.press("down")
                             time.sleep(0.1)
                         
-                        # Reset da posição Y para encontrar as novas datas visíveis após navegação
                         self.reset_click_position()
                         print(f"    🔄 Posição Y resetada para buscar novas datas visíveis")
                 else:
