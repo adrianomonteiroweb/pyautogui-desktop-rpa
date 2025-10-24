@@ -645,11 +645,7 @@ class RPA:
         if range_dates:
             self.reset_click_position()
             
-            column_result = self._find_data_inicio_column(silent=True)
-
-            if column_result != RPAResult.SUCCESS:
-                print("✗ Não foi possível localizar a coluna 'Data Início'")
-                return column_result
+            self._find_data_inicio_column(silent=True)
             
             time.sleep(1)
             
