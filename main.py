@@ -1,17 +1,12 @@
 from json_manager import JSONManager
 from text_formatter import TextFormatter
 
-
 from csv_manager import ler_arquivo_csv
 from utils import for_each
-from receitanetbx_bot import process_empresa
+from receitanetbx_bot import executar_receitanetbx
 
 def main():
     empresas = ler_arquivo_csv("empresas")
-    
-    if not empresas:
-        print("❌ Falha ao ler o arquivo de empresas.")
-        return
     
     json_manager = JSONManager()
     cnpj = json_manager.get_params().get("cnpj")
@@ -27,7 +22,7 @@ def main():
     
     for_each(
         items=empresas_filtradas,
-        process_func=process_empresa,
+        process_func=executar_receitanetbx,
         max_retries=0,
         retry_delay=2,
         item_name_func=get_empresa_name

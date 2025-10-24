@@ -3,7 +3,7 @@ from json_manager import JSONManager
 from rpa import RPA, RPAResult, RPAConfig
 from files_manager import FilesManager
 
-def process_empresa(empresa, first_time):
+def executar_receitanetbx(empresa, first_time):
     # Configuração inicial com confidence baixo para o init()
     config = RPAConfig(
         confidence=0.9,  # Confidence baixo para encontrar e abrir a aplicação

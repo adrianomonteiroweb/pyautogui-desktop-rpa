@@ -31,8 +31,6 @@ def for_each(items, process_func, max_retries=1, retry_delay=5, item_name_func=N
 
         while attempts <= max_retries:
             try:
-                print(f"🔄 Tentativa {attempts + 1} para item: {item_name}")
-                
                 result = process_func(item, attempts == 0)
                 
                 if result == "Unfinish":
