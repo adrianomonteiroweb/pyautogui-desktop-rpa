@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "id": "76b52259-564d-4604-9f0b-b57a02d071b5",
-  "name": "Baixar arquivos SPED no Receitanet BX",
+  "name": "ABAXBaixar arquivos SPED no Receitanet BX",
   "version": "1.0.0",
   "description": "Baixa arquivos SPED contribuições, fiscal, ECF e contábil no Receitanet BX.",
   "author": {

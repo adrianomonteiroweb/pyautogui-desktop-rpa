@@ -1,0 +1,11 @@
+{
+  "name": "@bots/abax-receitanetbx-baixar-sped",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "scripts": {
+    "dev": "python main.py",
+    "start": "node ./`start`.js",
+    "publish": "node ./publish.js"
+  }
+}
