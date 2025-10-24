@@ -156,7 +156,6 @@ class RPA:
             try:
                 confidence_to_use = self.config.confidence
                 
-                # Se já passou da metade do tempo e ainda não tentou com menor confidence
                 if elapsed_time > timeout / 2 and not tried_lower_confidence and self.config.confidence > 0.6:
                     confidence_to_use = 0.6
                     tried_lower_confidence = True
@@ -194,75 +193,6 @@ class RPA:
                 print(f"⚠ Imagem {image_filename} não encontrada na tela")
         
         return result
-
-    def _single_click_image_filter_positions(self, image_filename: str, min_x: int = None, max_x: int = None, 
-                                           min_y: int = None, max_y: int = None, alias: str = "", 
-                                           silent: bool = False) -> RPAResult:
-        image_path = self._get_image_path(alias, image_filename)
-
-        if not self._validate_image_file(image_path):
-            if not silent:
-                print(f"✗ Arquivo de imagem não encontrado: {image_path}")
-            return RPAResult.FILE_NOT_EXISTS
-
-        try:
-            all_locations = self._find_all_image_locations(image_path)
-            
-            if not all_locations and self.config.confidence > 0.6:
-                if not silent:
-                    print(f"⚠ Tentando com menor precisão para {image_filename}...")
-                all_locations = self._find_all_image_locations(image_path, confidence=0.6)
-            
-            if not all_locations:
-                if not silent:
-                    print(f"✗ Não foi possível localizar {image_filename}")
-                return RPAResult.IMAGE_NOT_FOUND
-            
-            filtered_locations = []
-
-            for location in all_locations:
-                center = PyAutoGui.center(location)
-                x, y = center
-                
-                if min_x is not None and x < min_x:
-                    continue
-                if max_x is not None and x > max_x:
-                    continue
-                    
-                if min_y is not None and y < min_y:
-                    continue
-                if max_y is not None and y > max_y:
-                    continue
-                
-                filtered_locations.append((location, center))
-            
-            if not filtered_locations:
-                if not silent:
-                    filter_info = f"X: [{min_x or '∞'}-{max_x or '∞'}], Y: [{min_y or '∞'}-{max_y or '∞'}]"
-                    print(f"✗ Nenhuma ocorrência de {image_filename} encontrada nos ranges especificados: {filter_info}")
-                    print(f"  Ocorrências totais encontradas: {len(all_locations)}")
-                    for i, location in enumerate(all_locations, 1):
-                        center = PyAutoGui.center(location)
-                        print(f"    {i}. Posição: {center}")
-                return RPAResult.IMAGE_NOT_FOUND
-            
-            location, center = filtered_locations[0]
-            
-            if not silent:
-                filter_info = f"X: [{min_x or '∞'}-{max_x or '∞'}], Y: [{min_y or '∞'}-{max_y or '∞'}]"
-                print(f"✅ Clicando em {image_filename} na posição {center} (dentro dos ranges {filter_info})")
-                if len(filtered_locations) > 1:
-                    print(f"  Outras {len(filtered_locations)-1} ocorrências encontradas nos ranges:")
-                    for i, (_, other_center) in enumerate(filtered_locations[1:], 2):
-                        print(f"    {i}. Posição: {other_center}")
-            
-            PyAutoGui.click(center)
-            return RPAResult.SUCCESS
-            
-        except Exception as e:
-            if not silent:
-                print(f"✗ Erro ao tentar dar click único em {image_filename}: {e}")
-            return RPAResult.CLICK_FAILED
 
     def _double_click_image(self, icon_filename: str = "icon.png", alias: str = "", silent: bool = False) -> RPAResult:
         if not silent:
@@ -706,8 +636,6 @@ class RPA:
             if not silent:
                 print(f"✗ Erro ao clicar na data: {e}")
             return RPAResult.CLICK_FAILED
-
-
 
     def select_dates(self, range_dates) -> RPAResult:
         self.set_confidence(0.98)
