@@ -729,7 +729,7 @@ class RPA:
             
             dates_clicked = 0
 
-            for idx, date in enumerate(range_dates):
+            for date in range_dates:
                 if dates_clicked >= len(range_dates):
                     break
 
@@ -738,7 +738,7 @@ class RPA:
                 month = int(date.split("/")[1])
                 period_file = f"01.{month:02d}.png"
 
-                result = self._single_click_image_filtered_by_column(period_file, "tabelas")
+                result = self._single_click_image_filtered_by_column(period_file, "tabelas", silent=True)
 
                 if result == RPAResult.SUCCESS:
                     self._single_click_image("checkbox_linha_selecionada.png", "checkboxes")
@@ -746,7 +746,6 @@ class RPA:
                     print(f"    ✅ Data {date} clicada com sucesso.")
                     
                     if dates_clicked % 5 == 0:
-                        print(f"    🔽 Navegando para baixo após {dates_clicked} clicks bem-sucedidos (15x DOWN)...")
                         for _ in range(15):
                             PyAutoGui.press("down")
                             time.sleep(0.1)
@@ -755,13 +754,11 @@ class RPA:
                         print(f"    🔄 Posição Y resetada para buscar novas datas visíveis")
                 else:
                     print(f"    ⚠️ Data {date} não encontrada.")
-            
-            print(f"\n📊 {dates_clicked} datas clicadas com sucesso")
         else:
             self._single_click_image("checkbox_todos.png", "checkboxes")
             time.sleep(1)
 
-        self._single_click_image("solicitar_arquivos.png", "botoes")
+        self._single_click_image("solicitar_arquivos.png", "botoes", silent=True)
 
         confirm_result = self._wait_for_image("modal_sucesso.png", "modais")
 

@@ -4,7 +4,6 @@ from rpa import RPA, RPAResult, RPAConfig
 from files_manager import FilesManager
 
 def executar_receitanetbx(empresa, first_time):
-    # Configuração inicial com confidence baixo para o init()
     config = RPAConfig(
         confidence=0.9,  # Confidence baixo para encontrar e abrir a aplicação
         preview_mode=False,  # False para produção
@@ -52,19 +51,15 @@ def executar_receitanetbx(empresa, first_time):
             if tipo != "sped_fiscal":
                 range_dates = date_formatter.generate_monthly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
             else:
-                # Para sped_fiscal, geramos apenas as datas de início de cada ano
                 yearly_dates = date_formatter.generate_yearly_start_dates(start_date_formatted, end_date_formatted, format_type="dd/mm/yyyy")
                 range_dates = [yearly_dates]
 
             for i, year_dates in enumerate(range_dates):
                 is_first_iteration = (i == 0)
-                # A data inicial do último mês (ex: "01/10/2025")
                 last_month_start = year_dates[year_dates.__len__() - 1]
                 
-                # Calcula o último dia do mês (ex: "31/10/2025")
                 end_date = date_formatter.get_last_day_of_month(last_month_start, input_format="dd/mm/yyyy")
 
-                # Se end_date for superior à data atual, ajusta para data atual
                 from datetime import datetime
                 data_atual = datetime.now().strftime("%d/%m/%Y")
                 end_date_dt = datetime.strptime(end_date, "%d/%m/%Y")
