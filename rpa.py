@@ -215,32 +215,70 @@ class RPA:
         
         return result
 
-    def _selectOption(self, combo_image: str, option_image: str, alias: str, attempts: int = 2) -> RPAResult:
-        for attempt in range(attempts):
-            
-            combo_result = self._wait_for_image(combo_image, alias, timeout=10)
 
-            if combo_result != RPAResult.SUCCESS:
+    def _selectOptionMultiple(self, combo_images: list, option_images: list, alias: str, attempts: int = 2) -> RPAResult:
+        """
+        Tenta selecionar a primeira combinação encontrada entre combos e opções fornecidas.
+        """
+        for attempt in range(attempts):
+            combo_found = False
+            for combo_image in combo_images:
+                combo_result = self._wait_for_image(combo_image, alias, timeout=10)
+                if combo_result == RPAResult.SUCCESS:
+                    self._single_click_image(combo_image, alias)
+                    combo_found = True
+                    break
+            if not combo_found:
                 if attempt < attempts - 1:
                     time.sleep(1)
                     continue
                 else:
-                    return combo_result
-            
-            self._single_click_image(combo_image, alias)
-            
-            option_result = self._wait_for_image(option_image, alias, timeout=10)
+                    return RPAResult.IMAGE_NOT_FOUND
 
-            if option_result == RPAResult.SUCCESS:
-                click_result = self._single_click_image(option_image, alias)
-                
-                if click_result == RPAResult.SUCCESS:
-                    return RPAResult.SUCCESS    
-            
-            if attempt < attempts - 1:
+            option_found = False
+            for option_image in option_images:
+                option_result = self._wait_for_image(option_image, alias, timeout=10)
+                if option_result == RPAResult.SUCCESS:
+                    click_result = self._single_click_image(option_image, alias)
+                    if click_result == RPAResult.SUCCESS:
+                        return RPAResult.SUCCESS
+                    option_found = True
+                    break
+            if not option_found and attempt < attempts - 1:
                 time.sleep(1)
-        
         return RPAResult.IMAGE_NOT_FOUND
+
+    def _selectOption(self, combo_image: str, option_image: str, alias: str, attempts: int = 2) -> RPAResult:
+        # Se for combo_sistema.png, tente múltiplos combos e use o novo método
+        if combo_image == "combo_sistema.png":
+            combos = [
+                "combo_sistema.png",
+                "combo_sistema_contabil.png",
+                "combo_sistema_contribuicoes.png",
+                "combo_sistema_ecf.png",
+                "combo_sistema_fiscal.png"
+            ]
+            options = [option_image]
+            return self._selectOptionMultiple(combos, options, alias, attempts)
+        else:
+            # Comportamento padrão
+            for attempt in range(attempts):
+                combo_result = self._wait_for_image(combo_image, alias, timeout=10)
+                if combo_result != RPAResult.SUCCESS:
+                    if attempt < attempts - 1:
+                        time.sleep(1)
+                        continue
+                    else:
+                        return combo_result
+                self._single_click_image(combo_image, alias)
+                option_result = self._wait_for_image(option_image, alias, timeout=10)
+                if option_result == RPAResult.SUCCESS:
+                    click_result = self._single_click_image(option_image, alias)
+                    if click_result == RPAResult.SUCCESS:
+                        return RPAResult.SUCCESS    
+                if attempt < attempts - 1:
+                    time.sleep(1)
+            return RPAResult.IMAGE_NOT_FOUND
     
     def init(self) -> RPAResult:
         print("\nAbrindo o ReceitanetBX...")
@@ -473,6 +511,8 @@ class RPA:
     def search(self, tipo, start_date, end_date, is_first_iteration) -> RPAResult:
         self.set_confidence(0.9)
         
+        combo_options = ["combo_sistema.png", "combo_sistema_contribuicoes.png", "combo_sistema_contabil.png", "combo_sistema_ecf.png", "combo_sistema_fiscal.png"]
+        
         if is_first_iteration:
             self._double_click_image("maximizar.png", "botoes")
             time.sleep(2)
@@ -481,15 +521,14 @@ class RPA:
             print("\nPesquisando arquivos de SPED Contribuições...")
             self._double_click_image("lupa.png", "botoes")
 
-            if is_first_iteration:
-                self._selectOption("combo_sistema.png", "opcao_sped_contribuicoes.png", "comboboxes/sistema")
+            self._selectOptionMultiple(combo_options, ["opcao_sped_contribuicoes.png"], "comboboxes/sistema")
 
             return self._searchSPED(start_date, end_date, is_first_iteration)
         elif tipo == "sped_ecf":
             print("\nPesquisando arquivos de SPED ECF...")
             self._double_click_image("lupa.png", "botoes")
 
-            self._selectOption("combo_sistema.png", "opcao_sped_ecf.png", "comboboxes/sistema")
+            self._selectOptionMultiple(combo_options, ["opcao_sped_ecf.png"], "comboboxes/sistema")
 
             return self._searchSPED(start_date, end_date, is_first_iteration)
         elif tipo == "sped_fiscal":
