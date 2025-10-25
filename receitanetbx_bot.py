@@ -1,4 +1,5 @@
 from date_formatter import DateFormatter
+import time
 from json_manager import JSONManager
 from rpa import RPA, RPAResult, RPAConfig
 from files_manager import FilesManager
@@ -69,6 +70,15 @@ def executar_receitanetbx(empresa, first_time):
                     end_date = data_atual
 
                 start_date = year_dates[0]
+
+                if is_first_iteration:
+                    print("[LOG] Checando se botão maximizar está visível...")
+                    if rpa._is_image_visible("maximizar.png", "botoes"):
+                        print("[LOG] Botão maximizar visível. Realizando double click.")
+                        rpa._double_click_image("maximizar.png", "botoes")
+                        time.sleep(1)  # Aguarda janela maximizar
+                    else:
+                        print("[LOG] Botão maximizar NÃO está visível. Não será clicado.")
 
                 search_result = rpa.search(tipo=tipo, start_date=start_date, end_date=end_date, is_first_iteration=is_first_iteration)
 

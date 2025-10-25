@@ -24,6 +24,12 @@ class RPAConfig:
 
 
 class RPA:
+    def _is_image_visible(self, icon_filename: str = "icon.png", alias: str = "", confidence: float = None) -> bool:
+        """Verifica se a imagem está visível na tela."""
+        image_path = self._get_image_path(alias, icon_filename)
+        conf = confidence if confidence is not None else self.config.confidence
+        locations = self._find_all_image_locations(image_path, confidence=conf)
+        return bool(locations)
     def __init__(self, config: RPAConfig = None):
         self.config = config or RPAConfig()
         self.desktop_rpa = None
@@ -509,27 +515,23 @@ class RPA:
             return RPAResult.ERROR
 
     def search(self, tipo, start_date, end_date, is_first_iteration) -> RPAResult:
+        """
+        Realiza a busca de arquivos do tipo informado.
+        ATENÇÃO: O clique em maximizar.png deve ser feito APENAS na primeira iteração do for de tipos,
+        ou seja, fora deste método, antes da primeira chamada de search().
+        """
         self.set_confidence(0.9)
-        
         combo_options = ["combo_sistema.png", "combo_sistema_contribuicoes.png", "combo_sistema_contabil.png", "combo_sistema_ecf.png", "combo_sistema_fiscal.png"]
-        
-        if is_first_iteration:
-            self._double_click_image("maximizar.png", "botoes")
-            time.sleep(2)
 
         if tipo == "sped_contribuicoes":
             print("\nPesquisando arquivos de SPED Contribuições...")
             self._double_click_image("lupa.png", "botoes")
-
             self._selectOptionMultiple(combo_options, ["opcao_sped_contribuicoes.png"], "comboboxes/sistema")
-
             return self._searchSPED(start_date, end_date, is_first_iteration)
         elif tipo == "sped_ecf":
             print("\nPesquisando arquivos de SPED ECF...")
             self._double_click_image("lupa.png", "botoes")
-
             self._selectOptionMultiple(combo_options, ["opcao_sped_ecf.png"], "comboboxes/sistema")
-
             return self._searchSPED(start_date, end_date, is_first_iteration)
         elif tipo == "sped_fiscal":
             return self._searchSPEDFiscal()
